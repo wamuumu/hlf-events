@@ -1,0 +1,6 @@
+config/*
+runtime/*
+*.tar.gz
+go.sum
+go.mod
+.DS_Store
