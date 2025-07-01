@@ -1,5 +1,7 @@
 config/*
+!config/.gitkeep
 runtime/*
+!runtime/.gitkeep
 *.tar.gz
 go.sum
 go.mod
