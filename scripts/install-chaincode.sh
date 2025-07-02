@@ -42,6 +42,7 @@ CHAINCODE_PACKAGE_PATH="$CHAINCODE_PATH/$CHAINCODE_PACKAGE"
 CHAINCODE_NAME="publishProv"
 CHAINCODE_VERSION="1.0"
 CHAINCODE_SEQUENCE="1"
+# Note: This label must match the one used in package-chaincode.sh
 CHAINCODE_LABEL="publishProv2.0"
 
 # Network configuration
@@ -93,6 +94,18 @@ fi
 
 echo -e "${GREEN}✓ Docker is running${NC}"
 
+# Check if jq is installed (needed for package ID retrieval)
+if ! command -v jq &> /dev/null; then
+    echo -e "${RED}Error: jq is not installed${NC}"
+    echo -e "${YELLOW}Please install jq for JSON processing:${NC}"
+    echo "  - macOS: brew install jq"
+    echo "  - Ubuntu/Debian: sudo apt-get install jq"
+    echo "  - CentOS/RHEL: sudo yum install jq"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ jq is available${NC}"
+
 # Check if chaincode package exists
 if [ ! -f "$CHAINCODE_PACKAGE_PATH" ]; then
     echo -e "${RED}Error: Chaincode package not found at $CHAINCODE_PACKAGE_PATH${NC}"
@@ -102,6 +115,14 @@ if [ ! -f "$CHAINCODE_PACKAGE_PATH" ]; then
 fi
 
 echo -e "${GREEN}✓ Chaincode package found${NC}"
+
+# Display chaincode configuration for verification
+echo -e "${BLUE}Chaincode Configuration:${NC}"
+echo "  📦 Package: $CHAINCODE_PACKAGE"
+echo "  🏷️  Expected Label: $CHAINCODE_LABEL"
+echo "  📝 Name: $CHAINCODE_NAME"
+echo "  🔢 Version: $CHAINCODE_VERSION"
+echo "  #️⃣ Sequence: $CHAINCODE_SEQUENCE"
 
 # Check if containers are running
 echo -e "${YELLOW}Checking container status...${NC}"
@@ -145,16 +166,46 @@ get_package_id() {
     
     echo -e "${YELLOW}Getting package ID from $peer_name...${NC}"
     
-    PACKAGE_ID=$(docker exec "$peer_name" bash -c "
+    # First, let's see what chaincodes are actually installed
+    echo -e "${BLUE}Querying installed chaincodes...${NC}"
+    INSTALLED_CHAINCODES=$(docker exec "$peer_name" bash -c "
         export CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/users/Admin@${org_name}.testbed.local/msp/ && 
-        peer lifecycle chaincode queryinstalled --output json 2>/dev/null | jq -r \".installed_chaincodes[] | select(.label==\\\"$CHAINCODE_LABEL\\\") | .package_id\"
+        peer lifecycle chaincode queryinstalled --output json 2>/dev/null
     " 2>/dev/null)
+    
+    if [ -z "$INSTALLED_CHAINCODES" ]; then
+        echo -e "${RED}✗ Failed to query installed chaincodes${NC}"
+        return 1
+    fi
+    
+    # Show what's installed for debugging
+    echo -e "${BLUE}Installed chaincodes:${NC}"
+    echo "$INSTALLED_CHAINCODES" | jq -r '.installed_chaincodes[] | "  Label: \(.label), Package ID: \(.package_id)"' 2>/dev/null || echo "  No chaincodes found or jq parsing failed"
+    
+    # Try to get package ID using the exact label
+    PACKAGE_ID=$(echo "$INSTALLED_CHAINCODES" | jq -r ".installed_chaincodes[] | select(.label==\"$CHAINCODE_LABEL\") | .package_id" 2>/dev/null)
+    
+    # If exact match fails, try partial match
+    if [ -z "$PACKAGE_ID" ] || [ "$PACKAGE_ID" = "null" ]; then
+        echo -e "${YELLOW}Exact label match failed, trying partial match...${NC}"
+        PACKAGE_ID=$(echo "$INSTALLED_CHAINCODES" | jq -r ".installed_chaincodes[] | select(.label | contains(\"$CHAINCODE_NAME\")) | .package_id" 2>/dev/null | head -1)
+    fi
+    
+    # If still no match, try getting the first available package
+    if [ -z "$PACKAGE_ID" ] || [ "$PACKAGE_ID" = "null" ]; then
+        echo -e "${YELLOW}Partial match failed, getting first available package...${NC}"
+        PACKAGE_ID=$(echo "$INSTALLED_CHAINCODES" | jq -r ".installed_chaincodes[0].package_id" 2>/dev/null)
+    fi
     
     if [ ! -z "$PACKAGE_ID" ] && [ "$PACKAGE_ID" != "null" ]; then
         echo -e "${GREEN}✓ Package ID: $PACKAGE_ID${NC}"
         return 0
     else
         echo -e "${RED}✗ Failed to get package ID from $peer_name${NC}"
+        echo -e "${YELLOW}Debug info:${NC}"
+        echo "  - Expected label: $CHAINCODE_LABEL"
+        echo "  - Chaincode name: $CHAINCODE_NAME"
+        echo "  - Raw query result: $INSTALLED_CHAINCODES"
         return 1
     fi
 }
@@ -234,15 +285,6 @@ commit_chaincode() {
         echo -e "${RED}✗ Failed to commit chaincode${NC}"
         return 1
     fi
-}
-
-# Function to wait for user input
-wait_for_user() {
-    local message="$1"
-    echo ""
-    echo -e "${BLUE}$message${NC}"
-    read -p "Press Enter to continue..."
-    echo ""
 }
 
 # Main execution
