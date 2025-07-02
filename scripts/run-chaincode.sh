@@ -28,11 +28,6 @@ show_help() {
     echo "  readProv      - Query HLF_ReadProv function (reads provenance record)"
     echo "  list          - Show all available operations"
     echo ""
-    echo "Examples:"
-    echo "  ./run-chaincode.sh -c publishProv"
-    echo "  ./run-chaincode.sh -c readProv -n testchannel"
-    echo "  ./run-chaincode.sh -c list"
-    echo ""
 }
 
 # Parse command line arguments
@@ -162,7 +157,16 @@ invoke_publish_prov() {
     TIMESTAMP=$(date +%s)
     PID="pid_$(date +%Y%m%d_%H%M%S)"
     URI="https://example.com/resource/$PID"
-    HASH=$(echo -n "$PID$URI$TIMESTAMP" | sha256sum | cut -d' ' -f1)
+    
+    # Generate hash - use shasum on macOS, sha256sum on Linux
+    if command -v sha256sum &> /dev/null; then
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | sha256sum | cut -d' ' -f1)
+    elif command -v shasum &> /dev/null; then
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | shasum -a 256 | cut -d' ' -f1)
+    else
+        # Fallback to a simple hash
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | od -An -tx1 | tr -d ' \n')
+    fi
     
     echo "Parameters:"
     echo "  - PID: $PID"
@@ -173,7 +177,13 @@ invoke_publish_prov() {
     echo ""
     
     echo -e "${YELLOW}Executing transaction...${NC}"
-    RESULT=$(docker exec peer0.org1.testbed.local bash -c "
+    
+    # Construct the JSON payload properly
+    JSON_PAYLOAD="{\"Function\":\"HLF_CreateProv\",\"Args\":[\"$PID\",\"$URI\",\"$HASH\",\"$TIMESTAMP\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}"
+    
+    # Execute the command
+    RESULT=$(docker exec -e PID="$PID" -e URI="$URI" -e HASH="$HASH" -e TIMESTAMP="$TIMESTAMP" \
+        peer0.org1.testbed.local bash -c "
         export CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/users/Admin@org1.testbed.local/msp/ && 
         peer chaincode invoke \
             -o $ORDERER1 \
@@ -185,17 +195,17 @@ invoke_publish_prov() {
             --tlsRootCertFiles /etc/hyperledger/fabric/tlsca/tlsca.org1.testbed.local-cert.pem \
             --peerAddresses $PEER_ORG2 \
             --tlsRootCertFiles /etc/hyperledger/fabric/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local/msp/tlscacerts/tlsca.org2.testbed.local-cert.pem \
-            -c '{\"Function\":\"HLF_CreateProv\",\"Args\":[\"$PID\",\"$URI\",\"$HASH\",\"$TIMESTAMP\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}'
+            -c '{\"Function\":\"HLF_CreateProv\",\"Args\":[\"'\$PID'\",\"'\$URI'\",\"'\$HASH'\",\"'\$TIMESTAMP'\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}'
     " 2>&1)
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ Transaction successful!${NC}"
         echo -e "${BLUE}Response:${NC}"
-        echo "$RESULT" | grep -v "^Error:" | tail -n +2
-        echo ""
-        echo -e "${CYAN}💡 You can now query this record using:${NC}"
-        echo "  ./run-chaincode.sh -c readProv"
-        echo "  (Note: Update the PID in the script or add parameter support)"
+        if [ -n "$RESULT" ]; then
+            echo "$RESULT"
+        else
+            echo -e "${YELLOW}(No response data)${NC}"
+        fi
     else
         echo -e "${RED}✗ Transaction failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
@@ -209,39 +219,41 @@ query_read_prov() {
     echo -e "${BLUE}Querying chaincode function: HLF_ReadProv${NC}"
     echo -e "${CYAN}Reading provenance record...${NC}"
     
-    # Use a sample PID - in practice, this should be parameterized
-    PID="pid_string"
+    # Use a sample PID that matches our creation pattern - in practice, this should be parameterized
+    # For demonstration, we'll use a test PID. In production, this should accept a PID parameter
+    PID="pid_20250702_135347"  # Using the PID from our test creation
     
     echo "Parameters:"
     echo "  - PID: $PID"
     echo ""
-    echo -e "${YELLOW}💡 Note: Using default PID '$PID'. For production use, consider adding PID parameter support.${NC}"
+    echo -e "${YELLOW}💡 Note: Using test PID '$PID'. For production use, consider adding PID parameter support.${NC}"
+    echo -e "${CYAN}💡 To query a specific record, modify the PID variable in the script or add parameter support.${NC}"
     echo ""
     
     echo -e "${YELLOW}Executing query...${NC}"
-    RESULT=$(docker exec peer0.org1.testbed.local bash -c "
+    RESULT=$(docker exec -e PID="$PID" peer0.org1.testbed.local bash -c "
         export CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/users/User1@org1.testbed.local/msp/ && 
         peer chaincode query \
             -C $CHANNEL_NAME \
             -n publishProv \
-            -c '{\"Function\":\"HLF_ReadProv\",\"Args\":[\"$PID\"]}'
+            -c '{\"Function\":\"HLF_ReadProv\",\"Args\":[\"'\$PID'\"]}'
     " 2>&1)
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ Query successful!${NC}"
         echo -e "${BLUE}Response:${NC}"
-        echo "$RESULT" | grep -v "^Error:" | tail -n +2
-        
-        # Try to format JSON if it's valid JSON
-        if echo "$RESULT" | jq . >/dev/null 2>&1; then
-            echo ""
-            echo -e "${CYAN}Formatted JSON:${NC}"
-            echo "$RESULT" | jq .
+        if [ -n "$RESULT" ]; then
+            echo "$RESULT"
+            
+            # Try to format JSON if it's valid JSON
+            if echo "$RESULT" | jq . >/dev/null 2>&1; then
+                echo ""
+                echo -e "${CYAN}Formatted JSON:${NC}"
+                echo "$RESULT" | jq .
+            fi
+        else
+            echo -e "${YELLOW}(No response data)${NC}"
         fi
-        
-        echo ""
-        echo -e "${CYAN}💡 Tip: If the record doesn't exist, create one first using:${NC}"
-        echo "  ./run-chaincode.sh -c publishProv"
     else
         echo -e "${RED}✗ Query failed!${NC}"
         echo -e "${YELLOW}Error details:${NC}"
