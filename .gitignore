@@ -6,3 +6,4 @@ runtime/*
 go.sum
 go.mod
 .DS_Store
+node_modules
