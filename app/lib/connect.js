@@ -8,6 +8,8 @@ const path = require('node:path');
 class HLFConnector {
     constructor() {
         this.msp_id = process.env.MSP_ID || 'Org1';
+        this.chaincode_name = process.env.CHAINCODE_NAME || 'publishProv';
+        this.channel_name = process.env.CHANNEL_NAME || 'mychannel';
         this.crypto_path = process.env.CRYPTO_PATH || path.resolve(
             __dirname,
             '..',
@@ -73,9 +75,9 @@ class HLFConnector {
     }
 
     async connect() {
-        const client = await this.#newGrpcConnection();
-        const gateway = connect({
-            client,
+        this.client = await this.#newGrpcConnection();
+        this.gateway = connect({
+            client: this.client,
             identity: await this.#newIdentity(),
             signer: await this.#newSigner(),
             hash: hash.sha256,
@@ -95,7 +97,20 @@ class HLFConnector {
 
         console.log(`Gateway created for peer: ${this.peer_host_alias} at ${this.peer_endpoint}`);
 
-        return gateway;
+        try {
+            this.network = this.gateway.getNetwork(this.channel_name);
+            this.contract = this.network.getContract(this.chaincode_name);
+            console.log(`Connected to channel: ${this.channel_name}, contract: ${this.chaincode_name}`);
+        } catch (error) {
+            console.error(`Failed to get network or contract: ${error.message}`);
+            throw error;
+        }
+    }
+
+    async disconnect() {
+        this.gateway.close();
+        this.client.close();
+        console.log(`Disconnected from peer: ${this.peer_host_alias} at ${this.peer_endpoint}`);
     }
 }
 
