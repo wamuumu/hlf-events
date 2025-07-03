@@ -155,7 +155,7 @@ invoke_publish_prov() {
     echo -e "${CYAN}Creating sample provenance record...${NC}"
     
     TIMESTAMP=$(date +%s)
-    PID="pid_$(date +%Y%m%d_%H%M%S)"
+    PID="pid_test"
     URI="https://example.com/resource/$PID"
     
     # Generate hash - use shasum on macOS, sha256sum on Linux
@@ -221,7 +221,7 @@ query_read_prov() {
     
     # Use a sample PID that matches our creation pattern - in practice, this should be parameterized
     # For demonstration, we'll use a test PID. In production, this should accept a PID parameter
-    PID="pid_20250702_135347"  # Using the PID from our test creation
+    PID="pid_test"  # Using the PID from our test creation
     
     echo "Parameters:"
     echo "  - PID: $PID"

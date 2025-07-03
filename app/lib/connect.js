@@ -22,14 +22,14 @@ class HLFConnector {
         this.key_dir_path = process.env.KEY_DIR_PATH || path.resolve(
             this.crypto_path,
             'users',
-            'User1@org1.testbed.local',
+            'Admin@org1.testbed.local',
             'msp',
             'keystore'
         );
         this.cert_dir_path = process.env.CERT_DIR_PATH || path.resolve(
             this.crypto_path,
             'users',
-            'User1@org1.testbed.local',
+            'Admin@org1.testbed.local',
             'msp',
             'signcerts'
         );
