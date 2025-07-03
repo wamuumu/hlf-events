@@ -1,0 +1,186 @@
+Organizations:
+  - &OrdererOrgAnchor
+    Name: OrdererOrgName
+    ID: OrdererOrg
+    MSPDir: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererOrg.member')" #member matches any user of the organization
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererOrg.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererOrg.admin')"
+    OrdererEndpoints:
+      - orderer2.ord.testbed.local:7050   #must be properly assigned through DNS (In docker compose through container name)
+      - orderer1.ord.testbed.local:7050
+      #- orderer3.testbed.local:7050      #what happens if i add this without having its crypto material?
+  
+  - &Org1Anchor
+    Name: Org1Name
+    ID: Org1
+    MSPDir: ../runtime/crypto-config/peerOrganizations/org1.testbed.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org1.admin', 'Org1.peer', 'Org1.client')"
+      Writers:
+        Type: Signature
+        #Rule: "OR('Org1.admin', 'Org1.client:CN=User1@org1.testbed.local', 'Org1.client:CN=User2@org1.testbed.local')"
+        Rule: "OR('Org1.admin', 'Org1.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org1.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org1.peer')"
+    AnchorPeers:
+      - Host: peer0.org1.testbed.local #must be properly assigned through DNS (In docker compose through container name)
+        Port: 7051
+  - &Org2Anchor
+    Name: Org2Name
+    ID: Org2
+    MSPDir: ../runtime/crypto-config/peerOrganizations/org2.testbed.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org2.admin', 'Org2.peer', 'Org2.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org2.admin', 'Org2.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org2.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org2.peer')"
+    AnchorPeers:
+      - Host: peer0.org2.testbed.local #must be properly assigned through DNS (In docker compose through container name)
+        Port: 7051
+  - &Org3Anchor
+    Name: Org3Name
+    ID: Org3
+    MSPDir: ../runtime/crypto-config/peerOrganizations/org3.testbed.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org3.admin', 'Org3.peer', 'Org3.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org3.admin', 'Org3.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org3.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org3.peer')"
+    AnchorPeers:
+      - Host: peer0.org3.testbed.local #must be properly assigned through DNS (In docker compose through container name)
+        Port: 7051
+
+Capabilities: #all defined at v2 since we don't need retrocompatibility and want to empoy newest features
+  Channel: &ChannelCapabilities
+    V2_0: true
+
+  Orderer: &OrdererCapabilities
+    V2_0: true
+
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+Application: &ApplicationDefaults
+  Organizations: #This is left balnk sunnce I'm defining a template, once it is used (later in the file), organizations will be defined (and merged with this empty set)
+
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement: #Policy that defines the condition necessary for a chaincode to be installed/updated
+      Type: ImplicitMeta
+      Rule: "ALL Endorsement" #Default is MAJORITY
+    Endorsement: #Policy that defines the condition necessary for a transaction to be approved
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  
+  Addresses:
+    - orderer2.ord.testbed.local:7050
+    - orderer1.ord.testbed.local:7050
+
+  # Batch configuration: settings for batch time and size
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+
+  Policies:
+    Readers:
+      Type: Signature
+      Rule: "OR('OrdererOrg.member')"  # All members of the OrdererOrg can read
+    Writers:
+      Type: Signature
+      Rule: "OR('OrdererOrg.member')"  # All members of the OrdererOrg can write
+    Admins:
+      Type: Signature
+      Rule: "OR('OrdererOrg.admin')"  # Only admins can manage the orderer
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"  # Any writer can validate blocks
+
+  
+
+# Channel Defaults (for consistency in the channel configuration)
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  ChannelUsingRaft:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      EtcdRaft:
+        Consenters:
+          - Host: orderer2.ord.testbed.local
+            Port: 7050
+            ClientTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
+            ServerTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
+          - Host: orderer1.ord.testbed.local
+            Port: 7050
+            ClientTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
+            ServerTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
+      Organizations:
+        - *OrdererOrgAnchor
+      Capabilities: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *Org1Anchor
+        - *Org2Anchor
+        - *Org3Anchor
+      Capabilities: *ApplicationCapabilities
+    Consortium: SampleConsortium
