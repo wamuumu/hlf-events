@@ -137,7 +137,6 @@ services:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
       - ../organizations/peerOrganizations/org1.testbed.local/peers/peer0.org1.testbed.local/:/etc/hyperledger/fabric
-      - ../../chaincode/:/var/hyperledger/chaincode
       - peer0_org1_data:/var/hyperledger/production
     ports:
       - 7051:7051
@@ -181,7 +180,6 @@ services:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
       - ../organizations/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local/:/etc/hyperledger/fabric
-      - ../../chaincode/:/var/hyperledger/chaincode
       - peer0_org2_data:/var/hyperledger/production
     ports:
       - 8051:8051
@@ -225,7 +223,6 @@ services:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
       - ../organizations/peerOrganizations/org3.testbed.local/peers/peer0.org3.testbed.local/:/etc/hyperledger/fabric
-      - ../../chaincode/:/var/hyperledger/chaincode
       - peer0_org3_data:/var/hyperledger/production
     ports:
       - 9051:9051
