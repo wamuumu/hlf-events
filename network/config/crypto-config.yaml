@@ -1,0 +1,54 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+
+# ---------------------------------------------------------------------------
+# "PeerOrgs" - Definition of organizations managing peer nodes
+# ---------------------------------------------------------------------------
+PeerOrgs:
+- Name: Org1
+  Domain: org1.testbed.local
+  EnableNodeOUs: true
+  Template: 
+    Count: 1 # Number of peers per organization
+    SANS:
+      - localhost
+  Users:
+    Count: 1 # Number of users (excluding admin) per organization
+
+- Name: Org2
+  Domain: org2.testbed.local
+  EnableNodeOUs: true
+  Template:
+    Count: 1
+    SANS:
+      - localhost
+  Users:
+    Count: 1
+
+- Name: Org3
+  Domain: org3.testbed.local
+  EnableNodeOUs: true
+  Template:
+    Count: 1
+    SANS:
+      - localhost
+  Users:
+    Count: 1
+
+# ---------------------------------------------------------------------------
+# "OrdererOrgs" - Definition of organizations managing orderer nodes
+# ---------------------------------------------------------------------------
+OrdererOrgs:
+- Name: Orderer
+  Domain: ord.testbed.local
+  EnableNodeOUs: true # adds roles to certificate (used for POLICIES)
+  Specs:
+  - Hostname: orderer1
+    SANS:
+      - localhost
+  - Hostname: orderer2
+    SANS:
+      - localhost

@@ -1,84 +1,85 @@
 Organizations:
-  - &OrdererOrgAnchor
-    Name: OrdererOrgName
-    ID: OrdererOrg
-    MSPDir: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/msp
+  - &OrdererOrg
+    Name: OrdererMSP
+    ID: OrdererMSP
+    MSPDir: ../organizations/ordererOrganizations/ord.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('OrdererOrg.member')" #member matches any user of the organization
+        Rule: "OR('OrdererMSP.member')" #member matches any user of the organization
       Writers:
         Type: Signature
-        Rule: "OR('OrdererOrg.member')"
+        Rule: "OR('OrdererMSP.member')"
       Admins:
         Type: Signature
-        Rule: "OR('OrdererOrg.admin')"
+        Rule: "OR('OrdererMSP.admin')"
     OrdererEndpoints:
-      - orderer2.ord.testbed.local:7050   #must be properly assigned through DNS (In docker compose through container name)
       - orderer1.ord.testbed.local:7050
+      - orderer2.ord.testbed.local:8050   #must be properly assigned through DNS (In docker compose through container name)
       #- orderer3.testbed.local:7050      #what happens if i add this without having its crypto material?
   
-  - &Org1Anchor
-    Name: Org1Name
-    ID: Org1
-    MSPDir: ../runtime/crypto-config/peerOrganizations/org1.testbed.local/msp
+  - &Org1
+    Name: Org1MSP
+    ID: Org1MSP
+    MSPDir: ../organizations/peerOrganizations/org1.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('Org1.admin', 'Org1.peer', 'Org1.client')"
+        Rule: "OR('Org1MSP.admin', 'Org1MSP.peer', 'Org1MSP.client')"
       Writers:
         Type: Signature
-        #Rule: "OR('Org1.admin', 'Org1.client:CN=User1@org1.testbed.local', 'Org1.client:CN=User2@org1.testbed.local')"
-        Rule: "OR('Org1.admin', 'Org1.client')"
+        Rule: "OR('Org1MSP.admin', 'Org1MSP.client')"
       Admins:
         Type: Signature
-        Rule: "OR('Org1.admin')"
+        Rule: "OR('Org1MSP.admin')"
       Endorsement:
         Type: Signature
-        Rule: "OR('Org1.peer')"
+        Rule: "OR('Org1MSP.peer')"
     AnchorPeers:
       - Host: peer0.org1.testbed.local #must be properly assigned through DNS (In docker compose through container name)
         Port: 7051
-  - &Org2Anchor
-    Name: Org2Name
-    ID: Org2
-    MSPDir: ../runtime/crypto-config/peerOrganizations/org2.testbed.local/msp
+  
+  - &Org2
+    Name: Org2MSP
+    ID: Org2MSP
+    MSPDir: ../organizations/peerOrganizations/org2.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('Org2.admin', 'Org2.peer', 'Org2.client')"
+        Rule: "OR('Org2MSP.admin', 'Org2MSP.peer', 'Org2MSP.client')"
       Writers:
         Type: Signature
-        Rule: "OR('Org2.admin', 'Org2.client')"
+        Rule: "OR('Org2MSP.admin', 'Org2MSP.client')"
       Admins:
         Type: Signature
-        Rule: "OR('Org2.admin')"
+        Rule: "OR('Org2MSP.admin')"
       Endorsement:
         Type: Signature
-        Rule: "OR('Org2.peer')"
+        Rule: "OR('Org2MSP.peer')"
     AnchorPeers:
       - Host: peer0.org2.testbed.local #must be properly assigned through DNS (In docker compose through container name)
-        Port: 7051
-  - &Org3Anchor
-    Name: Org3Name
-    ID: Org3
-    MSPDir: ../runtime/crypto-config/peerOrganizations/org3.testbed.local/msp
+        Port: 8051
+  
+  - &Org3
+    Name: Org3MSP
+    ID: Org3MSP
+    MSPDir: ../organizations/peerOrganizations/org3.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('Org3.admin', 'Org3.peer', 'Org3.client')"
+        Rule: "OR('Org3MSP.admin', 'Org3MSP.peer', 'Org3MSP.client')"
       Writers:
         Type: Signature
-        Rule: "OR('Org3.admin', 'Org3.client')"
+        Rule: "OR('Org3MSP.admin', 'Org3MSP.client')"
       Admins:
         Type: Signature
-        Rule: "OR('Org3.admin')"
+        Rule: "OR('Org3MSP.admin')"
       Endorsement:
         Type: Signature
-        Rule: "OR('Org3.peer')"
+        Rule: "OR('Org3MSP.peer')"
     AnchorPeers:
       - Host: peer0.org3.testbed.local #must be properly assigned through DNS (In docker compose through container name)
-        Port: 7051
+        Port: 9051
 
 Capabilities: #all defined at v2 since we don't need retrocompatibility and want to empoy newest features
   Channel: &ChannelCapabilities
@@ -117,8 +118,8 @@ Orderer: &OrdererDefaults
   OrdererType: etcdraft
   
   Addresses:
-    - orderer2.ord.testbed.local:7050
     - orderer1.ord.testbed.local:7050
+    - orderer2.ord.testbed.local:8050
 
   # Batch configuration: settings for batch time and size
   BatchTimeout: 2s
@@ -130,13 +131,13 @@ Orderer: &OrdererDefaults
   Policies:
     Readers:
       Type: Signature
-      Rule: "OR('OrdererOrg.member')"  # All members of the OrdererOrg can read
+      Rule: "OR('OrdererMSP.member')"  # All members of the OrdererMSP can read
     Writers:
       Type: Signature
-      Rule: "OR('OrdererOrg.member')"  # All members of the OrdererOrg can write
+      Rule: "OR('OrdererMSP.member')"  # All members of the OrdererMSP can write
     Admins:
       Type: Signature
-      Rule: "OR('OrdererOrg.admin')"  # Only admins can manage the orderer
+      Rule: "OR('OrdererMSP.admin')"  # Only admins can manage the orderer
     BlockValidation:
       Type: ImplicitMeta
       Rule: "ANY Writers"  # Any writer can validate blocks
@@ -165,22 +166,22 @@ Profiles:
       <<: *OrdererDefaults
       EtcdRaft:
         Consenters:
-          - Host: orderer2.ord.testbed.local
-            Port: 7050
-            ClientTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
-            ServerTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
           - Host: orderer1.ord.testbed.local
             Port: 7050
-            ClientTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
-            ServerTLSCert: ../runtime/crypto-config/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
+            ClientTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
+            ServerTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
+          - Host: orderer2.ord.testbed.local
+            Port: 8050
+            ClientTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
+            ServerTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
       Organizations:
-        - *OrdererOrgAnchor
+        - *OrdererOrg
       Capabilities: *OrdererCapabilities
     Application:
       <<: *ApplicationDefaults
       Organizations:
-        - *Org1Anchor
-        - *Org2Anchor
-        - *Org3Anchor
+        - *Org1
+        - *Org2
+        - *Org3
       Capabilities: *ApplicationCapabilities
-    Consortium: SampleConsortium
+    Consortium: ConsortiumName # Assign a name ?
