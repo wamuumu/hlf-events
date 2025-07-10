@@ -1,0 +1,49 @@
+{
+	"organizations": [
+		{
+			"mspId": "Org1MSP",
+			"name": "Org1",
+			"domain": "org1.testbed.local",
+			"peers": [
+				{
+					"endpoint": "localhost:7051",
+					"hostname": "peer0.org1.testbed.local"
+				}
+			],
+			"users": ["User1", "Admin"]
+		},
+		{
+			"mspId": "Org2MSP",
+			"name": "Org2",
+			"domain": "org2.testbed.local",
+			"peers": [
+				{
+					"endpoint": "localhost:8051",
+					"hostname": "peer0.org2.testbed.local"
+				}
+			],
+			"users": ["User1", "Admin"]
+		},
+		{
+			"mspId": "Org3MSP",
+			"name": "Org3",
+			"domain": "org3.testbed.local",
+			"peers": [
+				{
+					"endpoint": "localhost:9051",
+					"hostname": "peer0.org3.testbed.local"
+				}
+			],
+			"users": ["User1", "Admin"]
+		}
+	],
+	"connectionTimeout": 10000,
+	"retryAttempts": 3,
+	"retryDelay": 1000,
+	"pathTemplates": {
+		"cryptoPath": "{{orgDomain}}",
+		"tlsCertPath": "{{orgDomain}}/peers/{{peerDomain}}/tls/ca.crt",
+		"userKeyPath": "{{orgDomain}}/users/{{userDomain}}/msp/keystore",
+		"userCertPath": "{{orgDomain}}/users/{{userDomain}}/msp/signcerts/cert.pem"
+	}
+}

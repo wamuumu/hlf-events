@@ -16,3 +16,6 @@ dist
 # Node files
 package-lock.json
 yarn.lock
+
+# Envs
+.env

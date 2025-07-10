@@ -4,148 +4,52 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as grpc from '@grpc/grpc-js';
-import { ChaincodeEvent, CloseableAsyncIterable, connect, Contract, GatewayError, hash, Network } from '@hyperledger/fabric-gateway';
-import { TextDecoder } from 'util';
-import { newGrpcConnection, newIdentity, newSigner } from './connect';
-
-const channel_name = 'mychannel';
-const chaincode_name = 'cc-test';
-
-const utf8Decoder = new TextDecoder();
+import { ConnectionManager } from './connect';
+import { EventManager } from './listener';
+import { ContractManager } from './contract';
 
 async function main(): Promise<void> {
-    const client = await newGrpcConnection();
-    const gateway = connect({
-        client,
-        identity: await newIdentity(),
-        signer: await newSigner(),
-        hash: hash.sha256,
-        evaluateOptions: () => {
-            return { deadline: Date.now() + 5000 }; // 5 seconds
-        },
-        endorseOptions: () => {
-            return { deadline: Date.now() + 15000 }; // 15 seconds
-        },
-        submitOptions: () => {
-            return { deadline: Date.now() + 5000 }; // 5 seconds
-        },
-        commitStatusOptions: () => {
-            return { deadline: Date.now() + 60000 }; // 1 minute
-        },
-    });
 
-    let events: CloseableAsyncIterable<ChaincodeEvent> | undefined;
+    const connection_manager = new ConnectionManager();
+    const gateway = await connection_manager.createGatewayConnection();
+    
+    // const connection_details = connection_manager.getConnectionDetails();
+
+    // const conn_state = connection_details.client.getChannel().getConnectivityState(false);
+    // console.log(`\n*** [APP] Channel connectivity state: ${conn_state}`);
+
+    // TODO: Watch for connectivity state changes. If the connection drops, create a new connection with another peer.
+
+    const event_manager = new EventManager(gateway);
+    await event_manager.listen();
+
+    const contract_manager = new ContractManager(gateway);
+
+    const resource = [
+        `pid_test_${Date.now()}`,
+        'uri_test',
+        'hash_test',
+        'timestamp_test',
+        JSON.stringify(['owner1', 'owner2']),
+    ]
+
+    const created = await contract_manager.createResource(resource);
+    const retrieved = await contract_manager.readResource([created.PID]);
+
+    console.log(created.PID, retrieved.PID);
 
     // Set up graceful shutdown on Ctrl+C
     const cleanup = () => {
         console.log('\n*** [APP] Shutting down gracefully...');
-        events?.close();
-        gateway.close();
-        client.close();
+        event_manager.stop();
+        connection_manager.closeGatewayConnection();
         process.exit(0);
     };
 
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
 
-    try {
-        const network = gateway.getNetwork(channel_name);
-        const contract = network.getContract(chaincode_name);
-
-        // Listen for events emitted by transactions
-        events = await startEventListening(network);
-
-        // Execute initial transaction
-        const write_resource = await createResource(contract);
-
-        // Read the resource to trigger an event
-        const pid = write_resource.PID;
-        await readResource(contract, pid);
-
-        console.log('\n*** [APP] Event listener is running. Press Ctrl+C to stop.');
-        console.log('*** [APP] Waiting for chaincode events from transactions...');
-
-        // Keep the application running indefinitely
-        await new Promise(() => {}); // This will never resolve, keeping the app alive
-
-    } catch (error) {
-        console.error('Error in main loop:', error);
-        cleanup();
-    }
+    await new Promise(() => {}); // Keep the process running to listen for events
 }
 
-main().catch((error: unknown) => {
-    console.error('******** FAILED to run the application:', error);
-    process.exitCode = 1;
-});
-
-async function startEventListening(network: Network): Promise<CloseableAsyncIterable<ChaincodeEvent>> {
-    console.log('\n*** Start chaincode event listening');
-
-    const events = await network.getChaincodeEvents(chaincode_name);
-    
-    void readEvents(events); // Don't await - run asynchronously
-    return events;
-}
-
-async function readEvents(events: CloseableAsyncIterable<ChaincodeEvent>): Promise<void> {
-    try {
-        for await (const event of events) {
-            const payload = parseJson(event.payload);
-            console.log(`\n<-- [CHAINCODE] Chaincode event received: ${event.eventName} -`, payload);
-        }
-    } catch (error: unknown) {
-        // Ignore the read error when events.close() is called explicitly
-        if (!(error instanceof GatewayError) || error.code !== grpc.status.CANCELLED.valueOf()) {
-            console.error('Error reading events:', error);
-        }
-    }
-    console.log('*** Event listening stopped');
-}
-
-function parseJson(jsonBytes: Uint8Array): unknown {
-    const json = utf8Decoder.decode(jsonBytes);
-    return JSON.parse(json);
-}
-
-async function createResource(contract: Contract): Promise<any> {
-    const now = Date.now();
-    const pid = `PID_${String(now)}`;
-
-    console.log(`\n--> [APP] Submit Transaction: CreateResource`);
-
-    const result = await contract.submitAsync('CreateResource', {
-        arguments: [
-            pid,
-            'https://example.com/resource',
-            'hash_13134bh34bj32b4',
-            'timestamp_432432423432',
-            JSON.stringify(['owner1', 'owner2']),
-        ],
-    });
-
-    const status = await result.getStatus();
-    if (!status.successful) {
-        throw new Error(`failed to commit transaction ${status.transactionId} with status code ${String(status.code)}`);
-    }
-
-    const resource = utf8Decoder.decode(result.getResult());
-    return JSON.parse(resource);
-}
-
-async function readResource(contract: Contract, pid: string): Promise<any> {
-    console.log(`\n--> [APP] Submit Transaction: ReadResource, PID: ${pid}`);
-
-    const result = await contract.submitAsync('ReadResource', {
-        arguments: [pid],
-    });
-
-    const status = await result.getStatus();
-    if (!status.successful) {
-        throw new Error(`failed to commit transaction ${status.transactionId} with status code ${String(status.code)}`);
-    }
-
-    const resource = utf8Decoder.decode(result.getResult());
-    return JSON.parse(resource);
-}
+main();
