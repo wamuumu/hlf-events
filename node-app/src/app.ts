@@ -4,6 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import { ConnectionManager } from './connect';
 import { EventManager } from './listener';
 import { ContractManager } from './contract';
@@ -11,37 +16,45 @@ import { ContractManager } from './contract';
 async function main(): Promise<void> {
 
     const connection_manager = new ConnectionManager();
-    const gateway = await connection_manager.createGatewayConnection();
+    let event_manager: EventManager | undefined;
+    let contract_manager: ContractManager | undefined;
+
+    connection_manager.onNewGateway(async (gateway) => {
+        console.log(`\n*** [APP] New gateway connection established: ${gateway.getIdentity().mspId}`);
+
+        event_manager = new EventManager(gateway);
+        event_manager.listen();
+
+        contract_manager = new ContractManager(gateway);
+    });
+
+    await connection_manager.createGatewayConnection();
     
-    // const connection_details = connection_manager.getConnectionDetails();
+    console.log('\n*** [APP] Gateway connection established. Listening for events...');
+    if (contract_manager) {
 
-    // const conn_state = connection_details.client.getChannel().getConnectivityState(false);
-    // console.log(`\n*** [APP] Channel connectivity state: ${conn_state}`);
+        const resource = [
+            `pid_test_${Date.now()}`,
+            'uri_test',
+            'hash_test',
+            'timestamp_test',
+            JSON.stringify(['owner1', 'owner2']),
+        ]
 
-    // TODO: Watch for connectivity state changes. If the connection drops, create a new connection with another peer.
+        try {
+            const created = await contract_manager.createResource(resource);
+            const retrieved = await contract_manager.readResource([created.PID]);
 
-    const event_manager = new EventManager(gateway);
-    await event_manager.listen();
-
-    const contract_manager = new ContractManager(gateway);
-
-    const resource = [
-        `pid_test_${Date.now()}`,
-        'uri_test',
-        'hash_test',
-        'timestamp_test',
-        JSON.stringify(['owner1', 'owner2']),
-    ]
-
-    const created = await contract_manager.createResource(resource);
-    const retrieved = await contract_manager.readResource([created.PID]);
-
-    console.log(created.PID, retrieved.PID);
-
+            console.log(created.PID, retrieved.PID);
+        } catch (error) {
+            console.error('Error during resource creation or retrieval:', error);
+        }
+    }
+    
     // Set up graceful shutdown on Ctrl+C
     const cleanup = () => {
         console.log('\n*** [APP] Shutting down gracefully...');
-        event_manager.stop();
+        event_manager?.stop();
         connection_manager.closeGatewayConnection();
         process.exit(0);
     };

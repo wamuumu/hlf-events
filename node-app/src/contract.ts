@@ -5,11 +5,7 @@
  */
 
 import { Gateway, Contract } from '@hyperledger/fabric-gateway';
-import * as path from 'path';
-import * as dotenv from 'dotenv';
 import { TextDecoder } from 'util';
-
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const utf8Decoder = new TextDecoder();
 

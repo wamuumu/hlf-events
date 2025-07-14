@@ -9,9 +9,7 @@ import {  Identity,  Signer, signers, connect, hash, Gateway } from '@hyperledge
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 export interface PeerConfig {
     endpoint: string;
@@ -114,27 +112,51 @@ export class ConnectionManager {
         return this.resolvePaths(profile_json, org_json, peer_json, user);
     }
 
-    public async createGatewayConnection(): Promise<Gateway> {
-        this.connection_details.client = await this.createGrpcClient();
-        this.connection_details.gateway = connect({
-            client: this.connection_details.client,
-            identity: await this.createIdentity(),
-            signer: await this.createSigner(),
-            hash: hash.sha256,
-            evaluateOptions: () => {
-                return { deadline: Date.now() + 5000 }; // 5 seconds
-            },
-            endorseOptions: () => {
-                return { deadline: Date.now() + 15000 }; // 15 seconds
-            },
-            submitOptions: () => {
-                return { deadline: Date.now() + 5000 }; // 5 seconds
-            },
-            commitStatusOptions: () => {
-                return { deadline: Date.now() + 60000 }; // 1 minute
-            },
+    public async createGatewayConnection(): Promise<void> {
+        try {
+            this.connection_details.client = await this.createGrpcClient();
+            this.connection_details.gateway = connect({
+                client: this.connection_details.client,
+                identity: await this.createIdentity(),
+                signer: await this.createSigner(),
+                hash: hash.sha256,
+                evaluateOptions: () => {
+                    return { deadline: Date.now() + 5000 }; // 5 seconds
+                },
+                endorseOptions: () => {
+                    return { deadline: Date.now() + 15000 }; // 15 seconds
+                },
+                submitOptions: () => {
+                    return { deadline: Date.now() + 5000 }; // 5 seconds
+                },
+                commitStatusOptions: () => {
+                    return { deadline: Date.now() + 60000 }; // 1 minute
+                },
+            });
+
+            await this.executeWhenReady(() => {
+                if (!!this.connection_details.gateway && !!this._onNewGatewayCallback) {
+                    this._onNewGatewayCallback(this.connection_details.gateway);
+                    this.monitorConnection();
+                }
+            });
+        } catch (error: unknown) {
+            console.error('Error creating gateway connection:', error);
+        }
+    }
+
+    private async executeWhenReady(callback: () => void): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.connection_details.client.waitForReady(Date.now() + 500, (error?: Error) => {
+                if (error) { 
+                    // Client is not ready, retry
+                    this.executeWhenReady(callback).then(resolve).catch(reject);
+                } else {
+                    callback();
+                    resolve();
+                }
+            });
         });
-        return this.connection_details.gateway;
     }
 
     public closeGatewayConnection(): void {
@@ -142,10 +164,9 @@ export class ConnectionManager {
             this.connection_details.gateway.close();
         if (this.connection_details.client)
             this.connection_details.client.close();
-    }
 
-    public getConnectionDetails(): Connection {
-        return this.connection_details;
+        this.connection_details.client = undefined as unknown as grpc.Client;
+        this.connection_details.gateway = undefined as unknown as Gateway;
     }
 
     private resolvePaths(connection_profile: ConnectionProfile, organization: OrganizationConfig, peer: PeerConfig, user: string): ConnectionProfile {
@@ -202,5 +223,31 @@ export class ConnectionManager {
             throw new Error(`No files in directory: ${dir_path}`);
         }
         return path.join(dir_path, file);
+    }
+
+    private monitorConnection(): void {
+        const channel = this.connection_details.client.getChannel();
+        let current_state = channel.getConnectivityState(false);
+        const deadline = process.env.CONNECTION_RECONNECT_TIMEOUT ? parseInt(process.env.CONNECTION_RECONNECT_TIMEOUT) : 10000;
+        try {
+            channel.watchConnectivityState(current_state, Date.now() + deadline, async (error?: Error) => {
+                if (error) {
+                    this.monitorConnection(); // Here if client is still running in READY state
+                } else {
+                    current_state = channel.getConnectivityState(true);
+                    console.log("Client state changed: ", current_state);
+
+                    // TODO: If state becomes IDLE from READY, we can assume a disconnect
+                }
+            });
+        } catch (error) {
+            channel.close();
+        }
+    }
+
+    private _onNewGatewayCallback?: (gateway: Gateway) => void;
+
+    public onNewGateway(callback: (gateway: Gateway) => Promise<void>): void {
+        this._onNewGatewayCallback = callback;
     }
 }

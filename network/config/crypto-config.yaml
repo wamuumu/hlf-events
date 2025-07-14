@@ -16,7 +16,7 @@ PeerOrgs:
     SANS:
       - localhost
   Users:
-    Count: 1 # Number of users (excluding admin) per organization
+    Count: 3 # Number of users (excluding admin) per organization
 
 - Name: Org2
   Domain: org2.testbed.local
@@ -26,7 +26,7 @@ PeerOrgs:
     SANS:
       - localhost
   Users:
-    Count: 1
+    Count: 2
 
 - Name: Org3
   Domain: org3.testbed.local
@@ -36,7 +36,7 @@ PeerOrgs:
     SANS:
       - localhost
   Users:
-    Count: 1
+    Count: 4
 
 # ---------------------------------------------------------------------------
 # "OrdererOrgs" - Definition of organizations managing orderer nodes
