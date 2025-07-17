@@ -30,6 +30,3 @@ Organizations:
       Endorsement:
           Type: Signature
           Rule: "OR('${ORG_NAME}MSP.peer')"
-    AnchorPeers:
-      - Host: peer0.${ORG_DOMAIN}
-        Port: ${PEER_PORT}

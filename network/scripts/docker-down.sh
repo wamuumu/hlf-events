@@ -12,3 +12,8 @@ REMAINING_CONTAINERS=$(docker ps -aq --filter "name=${DOCKER_PROJECT_NAME}" 2>/d
 if [ ! -z "${REMAINING_CONTAINERS}" ]; then
     docker rm -f ${REMAINING_CONTAINERS}
 fi
+
+REMAINING_VOLUMES=$(docker volume ls -q --filter "name=${DOCKER_PROJECT_NAME}" 2>/dev/null)
+if [ ! -z "${REMAINING_VOLUMES}" ]; then
+    docker volume rm ${REMAINING_VOLUMES}
+fi

@@ -9,14 +9,21 @@ export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
 export COMPOSE_BAKE=true
 export FABRIC_VERSION
 
+# TODO: convert these to parameters
 export ORG_ID=4
 export ORG_NAME="Org4"
 export ORG_DOMAIN="org4.testbed.local"
 export PEER_COUNT=1
 export USER_COUNT=1
+export PEER_HOST="peer0.org4.testbed.local"
 export PEER_PORT=10051
 export CHAINCODE_PORT=10052
 export OPERATIONS_PORT=9448
+
+# Definition of confuration files 
+ORIGINAL=${NETWORK_CHANNEL_PATH}/config.json
+MODIFIED=${NETWORK_CHANNEL_PATH}/modified_config.json
+OUTPUT=${NETWORK_CHANNEL_PATH}/${ORG_NAME,,}_update_in_envelope.pb
 
 function generate_org_crypto() {
     which cryptogen > /dev/null
@@ -82,54 +89,125 @@ function organization_up() {
     rm ${NETWORK_COMPOSE_PATH}/docker-compose-temp.yaml
 }
 
-function create_join_transaction() {
+function fetch_channel_config() {
 
-    CHANNEL=${NETWORK_CHANNEL_NAME}
-    ORIGINAL=${NETWORK_CHANNEL_PATH}/${NETWORK_CHANNEL_NAME}.json
-    MODIFIED=${NETWORK_CHANNEL_PATH}/modified_config.json
-    OUTPUT=${NETWORK_CHANNEL_PATH}/update_in_envelope.pb
-
-    # Extract the config part from the block JSON
-    CONFIG_JSON=${NETWORK_CHANNEL_PATH}/config_only.json
-    jq '.data.data[0].payload.data.config' ${ORIGINAL} > ${CONFIG_JSON}
-
-    # Add the new organization to the config
-    jq -s --arg org_name "${ORG_NAME}" '.[0] * {"channel_group":{"groups":{"Application":{"groups": {($org_name + "MSP"):.[1]}}}}}' ${CONFIG_JSON} ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json > ${MODIFIED}
-    rm ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json
-
-    configtxlator proto_encode --input "${CONFIG_JSON}" --type common.Config --output ${NETWORK_CHANNEL_PATH}/original_config.pb
-    configtxlator proto_encode --input "${MODIFIED}" --type common.Config --output ${NETWORK_CHANNEL_PATH}/modified_config.pb
-    configtxlator compute_update --channel_id "${CHANNEL}" --original ${NETWORK_CHANNEL_PATH}/original_config.pb --updated ${NETWORK_CHANNEL_PATH}/modified_config.pb --output ${NETWORK_CHANNEL_PATH}/config_update.pb
-    configtxlator proto_decode --input ${NETWORK_CHANNEL_PATH}/config_update.pb --type common.ConfigUpdate --output ${NETWORK_CHANNEL_PATH}/config_update.json
-    echo '{"payload":{"header":{"channel_header":{"channel_id":"'$CHANNEL'", "type":2}},"data":{"config_update":'$(cat ${NETWORK_CHANNEL_PATH}/config_update.json)'}}}' | jq . > ${NETWORK_CHANNEL_PATH}/config_update_in_envelope.json
-    configtxlator proto_encode --input ${NETWORK_CHANNEL_PATH}/config_update_in_envelope.json --type common.Envelope --output "${OUTPUT}"
-
-    set_organization 1
-    peer channel signconfigtx -f ${OUTPUT}
+    ORG=$1
+    OUTPUT=${NETWORK_CHANNEL_PATH}/config.json
 
     set_orderer 1
-    set_organization 2
-    peer channel update -f ${OUTPUT} -c ${CHANNEL} -o ${ORDERER_ADDR} --ordererTLSHostnameOverride ${ORDERER_HOST} --tls --cafile ${ORDERER_CA}
+    set_organization ${ORG}
 
-    # rm all the created files, except for the mychannel.block and mychannel.json
-    rm ${NETWORK_CHANNEL_PATH}/original_config.pb
-    rm ${NETWORK_CHANNEL_PATH}/modified_config.pb
-    rm ${NETWORK_CHANNEL_PATH}/config_update.pb
-    rm ${NETWORK_CHANNEL_PATH}/config_update.json
-    rm ${NETWORK_CHANNEL_PATH}/config_update_in_envelope.json
-    rm ${NETWORK_CHANNEL_PATH}/config_only.json
-    rm ${NETWORK_CHANNEL_PATH}/update_in_envelope.pb
-    rm ${NETWORK_CHANNEL_PATH}/modified_config.json
+    echo "Fetching the most recent configuration block for the channel"
+    peer channel fetch config ${NETWORK_CHANNEL_PATH}/config_block.pb \
+        -o ${ORDERER_ADDR} \
+        --ordererTLSHostnameOverride ${ORDERER_HOST} \
+        -c ${NETWORK_CHANNEL_NAME} \
+        --tls \
+        --cafile ${ORDERER_CA}
+
+    echo "Decoding config block to JSON and isolating config to ${OUTPUT}"
+    configtxlator proto_decode \
+        --input ${NETWORK_CHANNEL_PATH}/config_block.pb \
+        --type common.Block \
+        --output ${NETWORK_CHANNEL_PATH}/config_block.json
+    
+    jq .data.data[0].payload.data.config ${NETWORK_CHANNEL_PATH}/config_block.json > "${OUTPUT}"
+}
+
+function create_update_transaction() {
+
+    # Encode the original configuration in protobuf format
+    configtxlator proto_encode \
+        --input "${ORIGINAL}" \
+        --type common.Config \
+        --output ${NETWORK_CHANNEL_PATH}/original_config.pb
+
+    # Encode the modified configuration in protobuf format
+    configtxlator proto_encode \
+        --input "${MODIFIED}" \
+        --type common.Config \
+        --output ${NETWORK_CHANNEL_PATH}/modified_config.pb
+
+    # Compute the config update between the original and modified configurations
+    configtxlator compute_update \
+        --channel_id "${NETWORK_CHANNEL_NAME}" \
+        --original ${NETWORK_CHANNEL_PATH}/original_config.pb \
+        --updated ${NETWORK_CHANNEL_PATH}/modified_config.pb \
+        --output ${NETWORK_CHANNEL_PATH}/config_update.pb
+
+    # Decode the config update to JSON format
+    configtxlator proto_decode \
+        --input ${NETWORK_CHANNEL_PATH}/config_update.pb \
+        --type common.ConfigUpdate \
+        --output ${NETWORK_CHANNEL_PATH}/config_update.json
+
+    echo '{"payload":{"header":{"channel_header":{"channel_id":"'${NETWORK_CHANNEL_NAME}'", "type":2}},"data":{"config_update":'$(cat ${NETWORK_CHANNEL_PATH}/config_update.json)'}}}' | jq . > ${NETWORK_CHANNEL_PATH}/config_update_in_envelope.json
+
+    # Encode the config update in envelope format
+    configtxlator proto_encode \
+        --input ${NETWORK_CHANNEL_PATH}/config_update_in_envelope.json \
+        --type common.Envelope \
+        --output "${OUTPUT}"
 }
 
 function join_channel() {
-    BLOCKFILE=${NETWORK_CHANNEL_PATH}/${NETWORK_CHANNEL_NAME}.block
+
+    echo "Joining organization ${ORG_NAME} to the channel ${NETWORK_CHANNEL_NAME}"
+
+    fetch_channel_config 1
+    # Add the new organization to the config
+    jq -s --arg org_name "${ORG_NAME}" '.[0] * {"channel_group":{"groups":{"Application":{"groups": {($org_name + "MSP"):.[1]}}}}}' ${ORIGINAL} ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json > ${MODIFIED}
+    
+    create_update_transaction
+
+    # Sign with 1 peer the config update transaction
+    set_organization 1
+    peer channel signconfigtx -f ${OUTPUT}
+
+    # Submit the signed config update transaction to the orderer
+    set_orderer 1
+    set_organization 2
+    peer channel update \
+        -f ${OUTPUT} \
+        -c ${NETWORK_CHANNEL_NAME} \
+        -o ${ORDERER_ADDR} \
+        --ordererTLSHostnameOverride ${ORDERER_HOST} \
+        --tls \
+        --cafile ${ORDERER_CA}
+
+    # Remove all the intermediary files, except for the genesis.block
+    rm ${NETWORK_CHANNEL_PATH}/*.json
+    rm ${NETWORK_CHANNEL_PATH}/*.pb
 
     set_organization ${ORG_ID}
     export CORE_PEER_ADDRESS="localhost:10051"
 
-    set_orderer 1
+    BLOCKFILE=${NETWORK_CHANNEL_PATH}/genesis.block
     peer channel join -b $BLOCKFILE
+}
+
+function set_anchor_peer() {
+
+    echo "Setting anchor peer for organization ${ORG_NAME} on channel ${NETWORK_CHANNEL_NAME}"
+
+    # Fetch the current channel configuration to add the anchor peer
+    fetch_channel_config ${ORG_ID}
+    jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'${PEER_HOST}'","port": '${PEER_PORT}'}]},"version": "0"}}' ${NETWORK_CHANNEL_PATH}/config.json > ${NETWORK_CHANNEL_PATH}/modified_config.json
+
+    # Create the anchor peer update transaction
+    create_update_transaction
+
+    peer channel update \
+        -f ${OUTPUT} \
+        -c ${NETWORK_CHANNEL_NAME} \
+        -o ${ORDERER_ADDR} \
+        --ordererTLSHostnameOverride ${ORDERER_HOST} \
+        --tls \
+        --cafile ${ORDERER_CA}
+    
+    # Remove all the intermediary files, except for the genesis.block
+    rm ${NETWORK_CHANNEL_PATH}/*.json
+    rm ${NETWORK_CHANNEL_PATH}/*.pb
 }
 
 if [ ! -d "${NETWORK_ORG_PATH}/ordererOrganizations" ]; then
@@ -142,12 +220,8 @@ if [ -d "${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}" ]; then
     rm -rf "${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}"
 fi
 
-echo "Generating certificates for organization ${ORG_NAME}..."
 generate_org_crypto
 generate_org_definition
 organization_up
-echo "Sleeping for 5 seconds to allow container to start..."
-sleep 5
-
-create_join_transaction
-join_channel 
+join_channel
+set_anchor_peer

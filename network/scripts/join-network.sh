@@ -5,7 +5,7 @@
 
 export PATH=${PATH}:${FABRIC_BIN_PATH}
 
-BLOCKFILE=${NETWORK_CHANNEL_PATH}/${NETWORK_CHANNEL_NAME}.block
+BLOCKFILE=${NETWORK_CHANNEL_PATH}/genesis.block
 
 if [ -d ${NETWORK_CHANNEL_PATH} ]; then
     rm -rf ${NETWORK_CHANNEL_PATH}
@@ -44,14 +44,20 @@ join_peer_to_channel() {
     set_organization "$org_id"
 
     echo "Joining ${CORE_PEER_ADDRESS} to channel '${NETWORK_CHANNEL_NAME}'..."
-    peer channel join -b ${BLOCKFILE}
-}
-
-decode_genesis_block() {
-    configtxlator proto_decode \
-        --input ${NETWORK_CHANNEL_PATH}/${NETWORK_CHANNEL_NAME}.block \
-        --type common.Block \
-        --output ${NETWORK_CHANNEL_PATH}/${NETWORK_CHANNEL_NAME}.json
+    
+    if peer channel join -b ${BLOCKFILE} 2>&1; then
+        echo "Peer successfully joined the channel."
+    else
+        echo "Channel join command returned an error. Checking if peer is already in the channel..."
+        
+        # Check if the peer is already part of the channel
+        if peer channel list | grep -q "${NETWORK_CHANNEL_NAME}"; then
+            echo "Peer is already a member of channel '${NETWORK_CHANNEL_NAME}'. This is expected if running the script multiple times."
+        else
+            echo "Peer is not in the channel and the join operation failed. This needs investigation."
+            return 1
+        fi
+    fi
 }
 
 # Join orderers to the channel
@@ -78,6 +84,3 @@ else
     join_peer_to_channel 3
     echo "Peers joined to channel '${NETWORK_CHANNEL_NAME}' successfully."
 fi
-
-# Decode the genesis block to JSON format
-decode_genesis_block
