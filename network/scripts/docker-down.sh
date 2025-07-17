@@ -4,16 +4,8 @@
 
 export FABRIC_VERSION
 
-docker compose -f ${NETWORK_COMPOSE_PATH}/docker-compose.yaml -p ${DOCKER_PROJECT_NAME} down --volumes --remove-orphans
+find ${NETWORK_COMPOSE_PATH} -name "docker-compose*.yaml" -o -name "docker-compose*.yml" | while read -r compose_file; do
+    docker compose -f "$compose_file" -p ${DOCKER_PROJECT_NAME} down --volumes --remove-orphans
+done
 docker volume prune -f
 docker network prune -f
-
-REMAINING_CONTAINERS=$(docker ps -aq --filter "name=${DOCKER_PROJECT_NAME}" 2>/dev/null)
-if [ ! -z "${REMAINING_CONTAINERS}" ]; then
-    docker rm -f ${REMAINING_CONTAINERS}
-fi
-
-REMAINING_VOLUMES=$(docker volume ls -q --filter "name=${DOCKER_PROJECT_NAME}" 2>/dev/null)
-if [ ! -z "${REMAINING_VOLUMES}" ]; then
-    docker volume rm ${REMAINING_VOLUMES}
-fi

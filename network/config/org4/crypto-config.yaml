@@ -7,12 +7,12 @@ PeerOrgs:
   # ---------------------------------------------------------------------------
   # Organization template
   # ---------------------------------------------------------------------------
-  - Name: ${ORG_NAME}
-    Domain: ${ORG_DOMAIN}
+  - Name: Org4
+    Domain: org4.testbed.local
     EnableNodeOUs: true
     Template:
-      Count: ${PEER_COUNT}
+      Count: 1
       SANS:
         - localhost
     Users:
-      Count: ${USER_COUNT}
+      Count: 1

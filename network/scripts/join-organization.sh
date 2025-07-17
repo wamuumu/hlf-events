@@ -8,19 +8,22 @@ export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
 
 export COMPOSE_BAKE=true
 export FABRIC_VERSION
+export DOCKER_PROJECT_NAME
 
-# TODO: convert these to parameters
-export ORG_ID=4
-export ORG_NAME="Org4"
-export ORG_DOMAIN="org4.testbed.local"
-export PEER_COUNT=1
-export USER_COUNT=1
-export PEER_HOST="peer0.org4.testbed.local"
-export PEER_PORT=10051
-export CHAINCODE_PORT=10052
-export OPERATIONS_PORT=9448
+# Params definition
+ORG_ID=$1
+CRYPTO_FILE=${FABRIC_CFG_PATH}/$2
+CONFIGTX_FILE=${FABRIC_CFG_PATH}/$3
+COMPOSE_FILE=${NETWORK_COMPOSE_PATH}/$4
 
-# Definition of confuration files 
+# Variables extraction from configuration files
+ORG_NAME=$(yq -r '.PeerOrgs[0].Name' ${CRYPTO_FILE})
+ORG_DOMAIN=$(yq -r '.PeerOrgs[0].Domain' ${CRYPTO_FILE})
+PEER_ADDRESS=$(yq -r '.services | to_entries | .[0].value.environment[] | select(. | startswith("CORE_PEER_ADDRESS=")) | sub("CORE_PEER_ADDRESS="; "")' ${COMPOSE_FILE})
+PEER_HOST=$(echo $PEER_ADDRESS | cut -d: -f1)
+PEER_PORT=$(echo $PEER_ADDRESS | cut -d: -f2)
+
+# Variables definition for update transaction operations
 ORIGINAL=${NETWORK_CHANNEL_PATH}/config.json
 MODIFIED=${NETWORK_CHANNEL_PATH}/modified_config.json
 OUTPUT=${NETWORK_CHANNEL_PATH}/${ORG_NAME,,}_update_in_envelope.pb
@@ -33,13 +36,9 @@ function generate_org_crypto() {
         exit 1
     else
         echo "Cryptogen tool found at: $(which cryptogen)"
-        
-        TEMP_CONFIG=$(mktemp)
-        envsubst < ${FABRIC_CFG_PATH}/org-crypto.yaml > ${TEMP_CONFIG}
 
-        cryptogen generate --config=${TEMP_CONFIG} --output=${NETWORK_ORG_PATH}
+        cryptogen generate --config=${CRYPTO_FILE} --output=${NETWORK_ORG_PATH}
 
-        rm ${TEMP_CONFIG}
         echo "Cryptographic material generated successfully in ${NETWORK_ORG_PATH}"
     fi
 }
@@ -53,40 +52,23 @@ function generate_org_definition() {
     else
         echo "Configtxgen tool found at: $(which configtxgen)"
 
-        TEMP_CONFIG=$(mktemp)
-        envsubst < ${FABRIC_CFG_PATH}/org-configtx.yaml > ${TEMP_CONFIG}
-
-        mv ${FABRIC_CFG_PATH}/configtx.yaml ${FABRIC_CFG_PATH}/configtx.tmp.yaml
-        mv ${TEMP_CONFIG} ${FABRIC_CFG_PATH}/configtx.yaml
-
-        configtxgen -printOrg ${ORG_NAME}MSP > ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json
-
-        rm ${FABRIC_CFG_PATH}/configtx.yaml
-        mv ${FABRIC_CFG_PATH}/configtx.tmp.yaml ${FABRIC_CFG_PATH}/configtx.yaml
+        CONFIGTX_DIR=$(dirname ${CONFIGTX_FILE})
+        configtxgen -configPath ${CONFIGTX_DIR} -printOrg ${ORG_NAME}MSP > ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json
 
         echo "Organization definition generated successfully in ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json"
     fi
 }
 
 function organization_up() {
-
-    export ORG_NAME_LOWER=$(echo "${ORG_NAME}" | tr '[:upper:]' '[:lower:]')
-
-    TEMP_COMPOSE=$(mktemp)
-    envsubst < ${NETWORK_COMPOSE_PATH}/docker-organization-compose.yaml > ${TEMP_COMPOSE}
-
-    mv ${TEMP_COMPOSE} ${NETWORK_COMPOSE_PATH}/docker-compose-temp.yaml
     
     # Check if the container exists and stop it if it does
-    if docker ps -a -q -f name=peer0.${ORG_DOMAIN} | grep -q .; then
-        echo "Stopping existing peer0.${ORG_DOMAIN} container..."
-        docker stop peer0.${ORG_DOMAIN} 2>/dev/null || true
-        docker rm peer0.${ORG_DOMAIN} 2>/dev/null || true
+    if docker ps -a -q -f name=${PEER_HOST} | grep -q .; then
+        echo "Stopping existing ${PEER_HOST} container..."
+        docker stop ${PEER_HOST} 2>/dev/null || true
+        docker rm ${PEER_HOST} 2>/dev/null || true
     fi
 
-    docker compose -f ${NETWORK_COMPOSE_PATH}/docker-compose-temp.yaml -p ${DOCKER_PROJECT_NAME} up -d
-
-    rm ${NETWORK_COMPOSE_PATH}/docker-compose-temp.yaml
+    docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} up -d --no-recreate
 }
 
 function fetch_channel_config() {

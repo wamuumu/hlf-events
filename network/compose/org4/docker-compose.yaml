@@ -4,15 +4,15 @@
 #
 
 volumes:
-  peer0_${ORG_NAME_LOWER}_data:
+  peer0_org4_data:
 
 networks:
   fabric_net:
     name: fabric_net
 
-services:  
-  peer0.${ORG_DOMAIN}:
-    container_name: peer0.${ORG_DOMAIN}
+services:
+  peer0.org4.testbed.local:
+    container_name: peer0.org4.testbed.local
     image: hyperledger/fabric-peer:${FABRIC_VERSION}
     labels:
       service: hyperledger-fabric
@@ -28,28 +28,28 @@ services:
       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
       # Peer specific variables
-      - CORE_PEER_ID=peer0.${ORG_DOMAIN}
-      - CORE_PEER_ADDRESS=peer0.${ORG_DOMAIN}:${PEER_PORT}
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:${PEER_PORT}
-      - CORE_PEER_CHAINCODEADDRESS=peer0.${ORG_DOMAIN}:${CHAINCODE_PORT}
-      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:${CHAINCODE_PORT}
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.${ORG_DOMAIN}:${PEER_PORT}
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.${ORG_DOMAIN}:${PEER_PORT}
-      - CORE_PEER_LOCALMSPID=${ORG_NAME}MSP
+      - CORE_PEER_ID=peer0.org4.testbed.local
+      - CORE_PEER_ADDRESS=peer0.org4.testbed.local:10051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:10051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org4.testbed.local:10052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:10052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org4.testbed.local:10051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org4.testbed.local:10051
+      - CORE_PEER_LOCALMSPID=Org4MSP
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
-      - CORE_OPERATIONS_LISTENADDRESS=peer0.${ORG_DOMAIN}:${OPERATIONS_PORT}
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.org4.testbed.local:9448
       - CORE_METRICS_PROVIDER=prometheus
-      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0${ORG_NAME_LOWER}"}
+      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0org4"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     working_dir: /root
     command: peer node start
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
-      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
-      - ../organizations/peerOrganizations/${ORG_DOMAIN}/peers/peer0.${ORG_DOMAIN}/:/etc/hyperledger/fabric
-      - peer0_${ORG_NAME_LOWER}_data:/var/hyperledger/production
+      - ../../config/core.yaml:/etc/hyperledger/fabric/core.yaml
+      - ../../organizations/peerOrganizations/org4.testbed.local/peers/peer0.org4.testbed.local/:/etc/hyperledger/fabric
+      - peer0_org4_data:/var/hyperledger/production
     ports:
-      - ${PEER_PORT}:${PEER_PORT}
-      - ${OPERATIONS_PORT}:${OPERATIONS_PORT}
+      - 10051:10051
+      - 9448:9448
     networks:
       - fabric_net
