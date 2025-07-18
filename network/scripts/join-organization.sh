@@ -2,6 +2,7 @@
 
 . ../network.config
 . set-env.sh
+. update-config.sh
 
 export PATH=${PATH}:${FABRIC_BIN_PATH}
 export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
@@ -22,11 +23,6 @@ ORG_DOMAIN=$(yq -r '.PeerOrgs[0].Domain' ${CRYPTO_FILE})
 PEER_ADDRESS=$(yq -r '.services | to_entries | .[0].value.environment[] | select(. | startswith("CORE_PEER_ADDRESS=")) | sub("CORE_PEER_ADDRESS="; "")' ${COMPOSE_FILE})
 PEER_HOST=$(echo $PEER_ADDRESS | cut -d: -f1)
 PEER_PORT=$(echo $PEER_ADDRESS | cut -d: -f2)
-
-# Variables definition for update transaction operations
-ORIGINAL=${NETWORK_CHANNEL_PATH}/config.json
-MODIFIED=${NETWORK_CHANNEL_PATH}/modified_config.json
-OUTPUT=${NETWORK_CHANNEL_PATH}/${ORG_NAME,,}_update_in_envelope.pb
 
 function generate_org_crypto() {
     which cryptogen > /dev/null
@@ -71,67 +67,6 @@ function organization_up() {
     docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} up -d --no-recreate
 }
 
-function fetch_channel_config() {
-
-    ORG=$1
-    OUTPUT=${NETWORK_CHANNEL_PATH}/config.json
-
-    set_orderer 1
-    set_organization ${ORG}
-
-    echo "Fetching the most recent configuration block for the channel"
-    peer channel fetch config ${NETWORK_CHANNEL_PATH}/config_block.pb \
-        -o ${ORDERER_ADDR} \
-        --ordererTLSHostnameOverride ${ORDERER_HOST} \
-        -c ${NETWORK_CHANNEL_NAME} \
-        --tls \
-        --cafile ${ORDERER_CA}
-
-    echo "Decoding config block to JSON and isolating config to ${OUTPUT}"
-    configtxlator proto_decode \
-        --input ${NETWORK_CHANNEL_PATH}/config_block.pb \
-        --type common.Block \
-        --output ${NETWORK_CHANNEL_PATH}/config_block.json
-    
-    jq .data.data[0].payload.data.config ${NETWORK_CHANNEL_PATH}/config_block.json > "${OUTPUT}"
-}
-
-function create_update_transaction() {
-
-    # Encode the original configuration in protobuf format
-    configtxlator proto_encode \
-        --input "${ORIGINAL}" \
-        --type common.Config \
-        --output ${NETWORK_CHANNEL_PATH}/original_config.pb
-
-    # Encode the modified configuration in protobuf format
-    configtxlator proto_encode \
-        --input "${MODIFIED}" \
-        --type common.Config \
-        --output ${NETWORK_CHANNEL_PATH}/modified_config.pb
-
-    # Compute the config update between the original and modified configurations
-    configtxlator compute_update \
-        --channel_id "${NETWORK_CHANNEL_NAME}" \
-        --original ${NETWORK_CHANNEL_PATH}/original_config.pb \
-        --updated ${NETWORK_CHANNEL_PATH}/modified_config.pb \
-        --output ${NETWORK_CHANNEL_PATH}/config_update.pb
-
-    # Decode the config update to JSON format
-    configtxlator proto_decode \
-        --input ${NETWORK_CHANNEL_PATH}/config_update.pb \
-        --type common.ConfigUpdate \
-        --output ${NETWORK_CHANNEL_PATH}/config_update.json
-
-    echo '{"payload":{"header":{"channel_header":{"channel_id":"'${NETWORK_CHANNEL_NAME}'", "type":2}},"data":{"config_update":'$(cat ${NETWORK_CHANNEL_PATH}/config_update.json)'}}}' | jq . > ${NETWORK_CHANNEL_PATH}/config_update_in_envelope.json
-
-    # Encode the config update in envelope format
-    configtxlator proto_encode \
-        --input ${NETWORK_CHANNEL_PATH}/config_update_in_envelope.json \
-        --type common.Envelope \
-        --output "${OUTPUT}"
-}
-
 function join_channel() {
 
     echo "Joining organization ${ORG_NAME} to the channel ${NETWORK_CHANNEL_NAME}"
@@ -142,13 +77,17 @@ function join_channel() {
     
     create_update_transaction
 
-    # Sign with 1 peer the config update transaction
-    set_organization 1
-    peer channel signconfigtx -f ${OUTPUT}
+    # In order to remove the organization, the admin policies must be satisfied.
+    # This requires that "MAJORITY of the organizations" sign the config update transaction.
+    # As of now, use the three existing organizations. 
+    # TODO: change this
+    for i in {1..3}; do
+        set_organization $i
+        peer channel signconfigtx -f ${OUTPUT}
+    done
 
     # Submit the signed config update transaction to the orderer
     set_orderer 1
-    set_organization 2
     peer channel update \
         -f ${OUTPUT} \
         -c ${NETWORK_CHANNEL_NAME} \
@@ -166,6 +105,8 @@ function join_channel() {
 
     BLOCKFILE=${NETWORK_CHANNEL_PATH}/genesis.block
     peer channel join -b $BLOCKFILE
+
+    echo "Organization ${ORG_NAME} successfully added to channel ${NETWORK_CHANNEL_NAME}"
 }
 
 function set_anchor_peer() {
@@ -207,3 +148,5 @@ generate_org_definition
 organization_up
 join_channel
 set_anchor_peer
+
+echo "Organization ${ORG_NAME} has been successfully added to the network."
