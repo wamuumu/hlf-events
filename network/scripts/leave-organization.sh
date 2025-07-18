@@ -14,16 +14,10 @@ export DOCKER_PROJECT_NAME
 # Params definition
 ORG_ID=$1
 CRYPTO_FILE=${FABRIC_CFG_PATH}/$2
-CONFIGTX_FILE=${FABRIC_CFG_PATH}/$3
-COMPOSE_FILE=${NETWORK_COMPOSE_PATH}/$4
 
 # Variables extraction from configuration files
 ORG_NAME=$(yq -r '.PeerOrgs[0].Name' ${CRYPTO_FILE})
 ORG_DOMAIN=$(yq -r '.PeerOrgs[0].Domain' ${CRYPTO_FILE})
-PEER_ADDRESS=$(yq -r '.services | to_entries | .[0].value.environment[] | select(. | startswith("CORE_PEER_ADDRESS=")) | sub("CORE_PEER_ADDRESS="; "")' ${COMPOSE_FILE})
-PEER_HOST=$(echo $PEER_ADDRESS | cut -d: -f1)
-PEER_PORT=$(echo $PEER_ADDRESS | cut -d: -f2)
-
 
 function leave_channel() {
 
@@ -64,28 +58,14 @@ function leave_channel() {
 function organization_down() {
     
     echo "Stopping organization ${ORG_NAME} containers..."
-    
-    # Get all container names related to this organization from the compose file
-    ORG_CONTAINERS=$(docker compose -f ${COMPOSE_FILE} config --services)
-    
-    # Stop and remove only the organization's containers
-    for service in $ORG_CONTAINERS; do
-        CONTAINER_NAME="${DOCKER_PROJECT_NAME}-${service}-1"
-        if docker ps -a -q -f name=${CONTAINER_NAME} | grep -q .; then
-            echo "Stopping ${CONTAINER_NAME} container..."
-            docker stop ${CONTAINER_NAME} 2>/dev/null || true
-            docker rm ${CONTAINER_NAME} 2>/dev/null || true
-        fi
-    done
-    
-    # Also try to stop containers matching the peer host pattern
-    if docker ps -a -q -f name=${PEER_HOST} | grep -q .; then
-        echo "Stopping ${PEER_HOST} container..."
-        docker stop ${PEER_HOST} 2>/dev/null || true
-        docker rm ${PEER_HOST} 2>/dev/null || true
+
+    ORG_CONTAINERS=$(docker ps -a --filter "name=${ORG_DOMAIN}" --format "{{.Names}}" | grep -v "^$" || true)
+    if [ ! -z "$ORG_CONTAINERS" ]; then
+        echo "Stopping containers for organization ${ORG_DOMAIN}..."
+        docker stop $ORG_CONTAINERS 2>/dev/null || true
+        docker rm $ORG_CONTAINERS 2>/dev/null || true
     fi
     
-    # Clean up any volumes specific to this organization
     ORG_VOLUMES=$(docker volume ls -q | grep -i ${ORG_NAME,,} || true)
     if [ ! -z "$ORG_VOLUMES" ]; then
         echo "Removing organization-specific volumes..."
