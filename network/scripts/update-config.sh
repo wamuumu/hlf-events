@@ -13,7 +13,7 @@ function fetch_channel_config() {
     OUTPUT=${NETWORK_CHANNEL_PATH}/config.json
 
     set_orderer 1
-    set_organization ${ORG}
+    set_organization_peer ${ORG} 1
 
     echo "Fetching the most recent configuration block for the channel"
     peer channel fetch config ${NETWORK_CHANNEL_PATH}/config_block.pb \
@@ -21,7 +21,7 @@ function fetch_channel_config() {
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         -c ${NETWORK_CHANNEL_NAME} \
         --tls \
-        --cafile ${ORDERER_CA}
+        --cafile ${ORDERER_ADMIN_TLS_CA}
 
     echo "Decoding config block to JSON and isolating config to ${OUTPUT}"
     configtxlator proto_decode \

@@ -11,13 +11,20 @@ export COMPOSE_BAKE=true
 export FABRIC_VERSION
 export DOCKER_PROJECT_NAME
 
+ORGANIZATIONS_JSON_FILE=${NETWORK_PROFILE_PATH}/organizations.json
+
 # Params definition
 ORG_ID=$1
-CRYPTO_FILE=${FABRIC_CFG_PATH}/$2
+ORG_COUNT=$(jq -r 'length' ${ORGANIZATIONS_JSON_FILE})
 
 # Variables extraction from configuration files
-ORG_NAME=$(yq -r '.PeerOrgs[0].Name' ${CRYPTO_FILE})
-ORG_DOMAIN=$(yq -r '.PeerOrgs[0].Domain' ${CRYPTO_FILE})
+ORG_NAME=$(jq -r ".\"$ORG_ID\".orgName" ${ORGANIZATIONS_JSON_FILE})
+ORG_DOMAIN=$(jq -r ".\"$ORG_ID\".orgDomain" ${ORGANIZATIONS_JSON_FILE})
+
+function clear_organization_profile() {
+    jq "del(.\"$ORG_ID\")" ${ORGANIZATIONS_JSON_FILE} > ${ORGANIZATIONS_JSON_FILE}.tmp && mv ${ORGANIZATIONS_JSON_FILE}.tmp ${ORGANIZATIONS_JSON_FILE}
+    echo "Organization profile for ${ORG_NAME} cleared from ${ORGANIZATIONS_JSON_FILE}"
+}
 
 function leave_channel() {
 
@@ -31,11 +38,14 @@ function leave_channel() {
 
     # In order to remove the organization, the admin policies must be satisfied.
     # This requires that "MAJORITY of the organizations" sign the config update transaction.
-    # As of now, use the three existing organizations. 
-    # TODO: change this
-    for i in {1..3}; do
-        set_organization $i
-        peer channel signconfigtx -f ${OUTPUT}
+    # Sign with all the peers of all organizations
+    
+    for ((i=1; i<=${ORG_COUNT}; i++)); do
+        PEER_COUNT=$(jq -r ".\"$i\".peers | length" ${ORGANIZATIONS_JSON_FILE})
+        for ((j=1; j<=PEER_COUNT; j++)); do
+            set_organization_peer $i $j
+            peer channel signconfigtx -f ${OUTPUT}
+        done
     done
 
     # Submit the signed config update transaction to the orderer
@@ -46,7 +56,7 @@ function leave_channel() {
         -o ${ORDERER_ADDR} \
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         --tls \
-        --cafile ${ORDERER_CA}
+        --cafile ${ORDERER_ADMIN_TLS_CA}
 
     # Remove all the intermediary files
     rm ${NETWORK_CHANNEL_PATH}/*.json
@@ -100,5 +110,6 @@ fi
 leave_channel
 organization_down
 cleanup_org_crypto
+clear_organization_profile
 
 echo "Organization ${ORG_NAME} has been successfully removed from the network."

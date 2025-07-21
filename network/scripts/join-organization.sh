@@ -11,18 +11,50 @@ export COMPOSE_BAKE=true
 export FABRIC_VERSION
 export DOCKER_PROJECT_NAME
 
+ORGANIZATIONS_JSON_FILE=${NETWORK_PROFILE_PATH}/organizations.json
+
 # Params definition
-ORG_ID=$1
-CRYPTO_FILE=${FABRIC_CFG_PATH}/$2
-CONFIGTX_FILE=${FABRIC_CFG_PATH}/$3
-COMPOSE_FILE=${NETWORK_COMPOSE_PATH}/$4
+ORG_COUNT=$(jq -r 'length' ${ORGANIZATIONS_JSON_FILE})
+ORG_ID=$(($ORG_COUNT + 1))
+CRYPTO_FILE=${FABRIC_CFG_PATH}/$1
+CONFIGTX_FILE=${FABRIC_CFG_PATH}/$2
+COMPOSE_FILE=${NETWORK_COMPOSE_PATH}/$3
 
 # Variables extraction from configuration files
 ORG_NAME=$(yq -r '.PeerOrgs[0].Name' ${CRYPTO_FILE})
 ORG_DOMAIN=$(yq -r '.PeerOrgs[0].Domain' ${CRYPTO_FILE})
-PEER_ADDRESS=$(yq -r '.services | to_entries | .[0].value.environment[] | select(. | startswith("CORE_PEER_ADDRESS=")) | sub("CORE_PEER_ADDRESS="; "")' ${COMPOSE_FILE})
-PEER_HOST=$(echo $PEER_ADDRESS | cut -d: -f1)
-PEER_PORT=$(echo $PEER_ADDRESS | cut -d: -f2)
+
+function add_organization_to_profiles() {
+    jq \
+        --arg orgId "$ORG_ID" \
+        --arg orgName "$ORG_NAME" \
+        --arg orgDomain "$ORG_DOMAIN" \
+        '.[$orgId] = {orgName: $orgName, orgDomain: $orgDomain, peers: []}' \
+        ${ORGANIZATIONS_JSON_FILE} > ${ORGANIZATIONS_JSON_FILE}.tmp && mv ${ORGANIZATIONS_JSON_FILE}.tmp ${ORGANIZATIONS_JSON_FILE}
+
+    SERVICES=$(yq -r '.services | to_entries | .[] | @json' ${COMPOSE_FILE})
+    while IFS= read -r service; do
+        CORE_LISTEN_ADDRESS=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_ADDRESS=")) | sub("CORE_PEER_ADDRESS="; "")')
+        CORE_PEER_ADDRESS=$(echo "localhost:${CORE_LISTEN_ADDRESS##*:}")
+        CORE_PEER_LOCALMSPID=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_LOCALMSPID=")) | sub("CORE_PEER_LOCALMSPID="; "")')
+        CORE_PEER_TLS_ROOTCERT_FILE=${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/tlsca/tlsca.${ORG_DOMAIN}-cert.pem
+        CORE_PEER_MSPCONFIGPATH=${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/users/Admin@${ORG_DOMAIN}/msp
+        CORE_PEER_TLS_SERVERHOSTOVERRIDE=$(echo "$service" | jq -r '.key')
+        CORE_PEER_TLS_ENABLED=true
+
+        jq \
+            --arg orgKey "$ORG_ID" \
+            --arg listenAddress "$CORE_LISTEN_ADDRESS" \
+            --arg address "$CORE_PEER_ADDRESS" \
+            --arg localMspId "$CORE_PEER_LOCALMSPID" \
+            --arg tlsRootCertFile "$CORE_PEER_TLS_ROOTCERT_FILE" \
+            --arg mspConfigPath "$CORE_PEER_MSPCONFIGPATH" \
+            --arg tlsServerHostOverride "$CORE_PEER_TLS_SERVERHOSTOVERRIDE" \
+            --arg tlsEnabled "$CORE_PEER_TLS_ENABLED" \
+            '.[$orgKey].peers += [{listenAddress: $listenAddress, address: $address, localMspId: $localMspId, tlsRootCertFile: $tlsRootCertFile, mspConfigPath: $mspConfigPath, tlsServerHostOverride: $tlsServerHostOverride, tlsEnabled: ($tlsEnabled | test("true"))}]' \
+            ${ORGANIZATIONS_JSON_FILE} > ${ORGANIZATIONS_JSON_FILE}.tmp && mv ${ORGANIZATIONS_JSON_FILE}.tmp ${ORGANIZATIONS_JSON_FILE}
+    done <<< "$SERVICES"
+}
 
 function generate_org_crypto() {
     which cryptogen > /dev/null
@@ -56,14 +88,7 @@ function generate_org_definition() {
 }
 
 function organization_up() {
-    
-    # Check if the container exists and stop it if it does
-    if docker ps -a -q -f name=${PEER_HOST} | grep -q .; then
-        echo "Stopping existing ${PEER_HOST} container..."
-        docker stop ${PEER_HOST} 2>/dev/null || true
-        docker rm ${PEER_HOST} 2>/dev/null || true
-    fi
-
+    echo "Starting organization ${ORG_NAME} services..."
     docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} up -d --no-recreate
 }
 
@@ -79,11 +104,14 @@ function join_channel() {
 
     # In order to remove the organization, the admin policies must be satisfied.
     # This requires that "MAJORITY of the organizations" sign the config update transaction.
-    # As of now, use the three existing organizations. 
-    # TODO: change this
-    for i in {1..3}; do
-        set_organization $i
-        peer channel signconfigtx -f ${OUTPUT}
+    # Sign with all the peers of all organizations
+    
+    for ((i=1; i<=${ORG_COUNT}; i++)); do
+        PEER_COUNT=$(jq -r ".\"$i\".peers | length" ${ORGANIZATIONS_JSON_FILE})
+        for ((j=1; j<=PEER_COUNT; j++)); do
+            set_organization_peer $i $j
+            peer channel signconfigtx -f ${OUTPUT}
+        done
     done
 
     # Submit the signed config update transaction to the orderer
@@ -94,17 +122,19 @@ function join_channel() {
         -o ${ORDERER_ADDR} \
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         --tls \
-        --cafile ${ORDERER_CA}
+        --cafile ${ORDERER_ADMIN_TLS_CA}
 
     # Remove all the intermediary files, except for the genesis.block
     rm ${NETWORK_CHANNEL_PATH}/*.json
     rm ${NETWORK_CHANNEL_PATH}/*.pb
 
-    set_organization ${ORG_ID}
-    export CORE_PEER_ADDRESS="localhost:10051"
-
     BLOCKFILE=${NETWORK_CHANNEL_PATH}/genesis.block
-    peer channel join -b $BLOCKFILE
+    PEER_COUNT=$(jq -r ".\"$ORG_ID\".peers | length" ${ORGANIZATIONS_JSON_FILE})
+    for ((i=1; i<=PEER_COUNT; i++)); do
+        set_organization_peer ${ORG_ID} $i
+        peer channel join -b $BLOCKFILE
+    done
+    echo "All peers of organization ${ORG_NAME} successfully joined the channel ${NETWORK_CHANNEL_NAME}"
 
     echo "Organization ${ORG_NAME} successfully added to channel ${NETWORK_CHANNEL_NAME}"
 }
@@ -115,6 +145,11 @@ function set_anchor_peer() {
 
     # Fetch the current channel configuration to add the anchor peer
     fetch_channel_config ${ORG_ID}
+
+    # Set the first peer as the anchor peer
+    ANCHOR_PEER=$(jq -r ".\"$ORG_ID\".peers[0].listenAddress" ${ORGANIZATIONS_JSON_FILE})
+    PEER_HOST=$(echo $ANCHOR_PEER | cut -d: -f1)
+    PEER_PORT=$(echo $ANCHOR_PEER | cut -d: -f2)
     jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'${PEER_HOST}'","port": '${PEER_PORT}'}]},"version": "0"}}' ${NETWORK_CHANNEL_PATH}/config.json > ${NETWORK_CHANNEL_PATH}/modified_config.json
 
     # Create the anchor peer update transaction
@@ -126,7 +161,7 @@ function set_anchor_peer() {
         -o ${ORDERER_ADDR} \
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         --tls \
-        --cafile ${ORDERER_CA}
+        --cafile ${ORDERER_ADMIN_TLS_CA}
     
     # Remove all the intermediary files, except for the genesis.block
     rm ${NETWORK_CHANNEL_PATH}/*.json
@@ -143,6 +178,7 @@ if [ -d "${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}" ]; then
     rm -rf "${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}"
 fi
 
+add_organization_to_profiles
 generate_org_crypto
 generate_org_definition
 organization_up

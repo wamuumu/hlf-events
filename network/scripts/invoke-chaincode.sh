@@ -6,6 +6,9 @@
 export PATH=${PATH}:${FABRIC_BIN_PATH}
 export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
 
+ORGANIZATIONS_JSON_FILE=${NETWORK_PROFILE_PATH}/organizations.json
+ORG_COUNT=$(jq -r 'length' ${ORGANIZATIONS_JSON_FILE})
+
 # Function to invoke chaincode (create provenance)
 invoke_resource_creation() {
     
@@ -28,21 +31,27 @@ invoke_resource_creation() {
     
     PEER_ADDRESSES=""
     TLS_ROOT_CERT_FILES=""
-    
-    for i in "${!PEERS[@]}"; do
-        local peer="${PEERS[$i]}"
-        local peer_ca="${PEERS_CA[$i]}"
-        
-        if [ ! -z "${PEER_ADDRESSES}" ]; then
-            PEER_ADDRESSES="${PEER_ADDRESSES} --peerAddresses ${peer}"
-            TLS_ROOT_CERT_FILES="${TLS_ROOT_CERT_FILES} --tlsRootCertFiles ${peer_ca}"
-        else
-            PEER_ADDRESSES="--peerAddresses ${peer}"
-            TLS_ROOT_CERT_FILES="--tlsRootCertFiles ${peer_ca}"
-        fi
+
+    for ((i=1; i<=ORG_COUNT; i++)); do
+
+        local organization=$(jq -r ".\"$i\"" ${ORGANIZATIONS_JSON_FILE})
+        local peers_count=$(echo "$organization" | jq -r '.peers | length')
+
+        # Loop through all peers in this organization
+        for ((peer_num=1; peer_num<=peers_count; peer_num++)); do
+            set_organization_peer $i $peer_num
+            
+            if [ ! -z "${PEER_ADDRESSES}" ]; then
+                PEER_ADDRESSES="${PEER_ADDRESSES} --peerAddresses ${CORE_PEER_ADDRESS}"
+                TLS_ROOT_CERT_FILES="${TLS_ROOT_CERT_FILES} --tlsRootCertFiles ${CORE_PEER_TLS_ROOTCERT_FILE}"
+            else
+                PEER_ADDRESSES="--peerAddresses ${CORE_PEER_ADDRESS}"
+                TLS_ROOT_CERT_FILES="--tlsRootCertFiles ${CORE_PEER_TLS_ROOTCERT_FILE}"
+            fi
+        done
     done
 
-    set_organization 1
+    set_organization 1 1
     set_orderer 1
 
     # Print params
@@ -57,7 +66,7 @@ invoke_resource_creation() {
         -C $NETWORK_CHANNEL_NAME \
         -n $CC_NAME \
         --tls \
-        --cafile $ORDERER_CA \
+        --cafile $ORDERER_ADMIN_TLS_CA \
         ${PEER_ADDRESSES} \
         ${TLS_ROOT_CERT_FILES} \
         -c "$JSON_PAYLOAD"

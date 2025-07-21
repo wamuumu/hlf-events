@@ -9,3 +9,14 @@ find ${NETWORK_COMPOSE_PATH} -name "docker-compose*.yaml" -o -name "docker-compo
 done
 docker volume prune -f
 docker network prune -f
+
+
+# Delete runtime directories
+
+if [ -d ${NETWORK_CHANNEL_PATH} ]; then
+    rm -rf ${NETWORK_CHANNEL_PATH}
+fi
+
+if [ -d ${NETWORK_PROFILE_PATH} ]; then
+    rm -rf ${NETWORK_PROFILE_PATH}
+fi

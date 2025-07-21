@@ -3,6 +3,7 @@
 . ../network.config
 
 export PATH=${PATH}:${FABRIC_BIN_PATH}
+export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
 
 if [ -d ${NETWORK_ORG_PATH} ]; then
     rm -rf ${NETWORK_ORG_PATH}

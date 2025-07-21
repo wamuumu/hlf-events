@@ -5,11 +5,12 @@
 
 export PATH=${PATH}:${FABRIC_BIN_PATH}
 
-BLOCKFILE=${NETWORK_CHANNEL_PATH}/genesis.block
+ORGANIZATIONS_JSON_FILE=${NETWORK_PROFILE_PATH}/organizations.json
+ORDERERS_JSON_FILE=${NETWORK_PROFILE_PATH}/orderers.json
 
-if [ -d ${NETWORK_CHANNEL_PATH} ]; then
-    rm -rf ${NETWORK_CHANNEL_PATH}
-fi
+BLOCKFILE=${NETWORK_CHANNEL_PATH}/genesis.block
+ORG_COUNT=$(jq -r 'length' ${ORGANIZATIONS_JSON_FILE})
+ORD_COUNT=$(jq -r 'length' ${ORDERERS_JSON_FILE})
 
 mkdir -p ${NETWORK_CHANNEL_PATH}
 
@@ -26,10 +27,9 @@ else
 fi
 
 join_orderer_to_channel() {
-    local orderer_id=$1
-    set_admin_orderer "$orderer_id"
+    set_orderer $1 # Orderer ID
 
-    echo "Joining ${ORDERER_ADMIN_HOST} (${ORDERER_ADMIN_ADDR}) to channel '${NETWORK_CHANNEL_NAME}'..."
+    echo "Joining ${ORDERER_HOST} (${ORDERER_ADMIN_ADDR}) to channel '${NETWORK_CHANNEL_NAME}'..."
     osnadmin channel join \
         --channelID ${NETWORK_CHANNEL_NAME} \
         --config-block ${BLOCKFILE} \
@@ -40,8 +40,7 @@ join_orderer_to_channel() {
 }
 
 join_peer_to_channel() {
-    local org_id=$1
-    set_organization "$org_id"
+    set_organization_peer $1 $2 # Organization ID and Peer index
 
     echo "Joining ${CORE_PEER_ADDRESS} to channel '${NETWORK_CHANNEL_NAME}'..."
     
@@ -67,8 +66,9 @@ if [ $? -ne 0 ]; then
     exit 1
 else
     echo "Osnadmin tool found at: $(which osnadmin)"
-    join_orderer_to_channel 1
-    join_orderer_to_channel 2
+    for ((i=1; i<=ORD_COUNT; i++)); do
+        join_orderer_to_channel $i
+    done
     echo "Orderers joined to channel '${NETWORK_CHANNEL_NAME}' successfully."
 fi
 
@@ -79,8 +79,11 @@ if [ $? -ne 0 ]; then
     exit 1
 else
     echo "Peer CLI tool found at: $(which peer)"
-    join_peer_to_channel 1
-    join_peer_to_channel 2
-    join_peer_to_channel 3
+    for ((i=1; i<=ORG_COUNT; i++)); do
+        PEER_COUNT=$(jq -r ".\"$i\".peers | length" ${ORGANIZATIONS_JSON_FILE})
+        for ((j=1; j<=PEER_COUNT; j++)); do
+            join_peer_to_channel $i $j
+        done
+    done
     echo "Peers joined to channel '${NETWORK_CHANNEL_NAME}' successfully."
 fi
