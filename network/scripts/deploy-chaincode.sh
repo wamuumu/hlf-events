@@ -45,8 +45,8 @@ peer_commit_chaincode() {
         local peers_count=$(echo "$organization" | jq -r '.peers | length')
 
         # Loop through all peers in this organization
-        for ((peer_num=1; peer_num<=peers_count; peer_num++)); do
-            set_organization_peer $i $peer_num
+        for ((j=1; j<=peers_count; j++)); do
+            set_organization_peer $i $j
             
             if [ ! -z "${PEER_ADDRESSES}" ]; then
                 PEER_ADDRESSES="${PEER_ADDRESSES} --peerAddresses ${CORE_PEER_ADDRESS}"

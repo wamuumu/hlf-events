@@ -64,7 +64,6 @@ while IFS= read -r service; do
         CORE_PEER_LOCALMSPID=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_LOCALMSPID=")) | sub("CORE_PEER_LOCALMSPID="; "")')
         CORE_PEER_TLS_ROOTCERT_FILE=${NETWORK_ORG_PATH}/peerOrganizations/${PEER_ORG_DOMAIN}/tlsca/tlsca.${PEER_ORG_DOMAIN}-cert.pem
         CORE_PEER_MSPCONFIGPATH=${NETWORK_ORG_PATH}/peerOrganizations/${PEER_ORG_DOMAIN}/users/Admin@${PEER_ORG_DOMAIN}/msp
-        CORE_PEER_TLS_SERVERHOSTOVERRIDE=$(echo "$service" | jq -r '.key')
         CORE_PEER_TLS_ENABLED=true
         
         # Find the organization ID that matches the peer's domain
@@ -79,9 +78,8 @@ while IFS= read -r service; do
             --arg localMspId "$CORE_PEER_LOCALMSPID" \
             --arg tlsRootCertFile "$CORE_PEER_TLS_ROOTCERT_FILE" \
             --arg mspConfigPath "$CORE_PEER_MSPCONFIGPATH" \
-            --arg tlsServerHostOverride "$CORE_PEER_TLS_SERVERHOSTOVERRIDE" \
             --arg tlsEnabled "$CORE_PEER_TLS_ENABLED" \
-            '.[$orgKey].peers += [{listenAddress: $listenAddress, address: $address, localMspId: $localMspId, tlsRootCertFile: $tlsRootCertFile, mspConfigPath: $mspConfigPath, tlsServerHostOverride: $tlsServerHostOverride, tlsEnabled: ($tlsEnabled | test("true"))}]' \
+            '.[$orgKey].peers += [{listenAddress: $listenAddress, address: $address, localMspId: $localMspId, tlsRootCertFile: $tlsRootCertFile, mspConfigPath: $mspConfigPath, tlsEnabled: ($tlsEnabled | test("true"))}]' \
             ${ORGANIZATIONS_JSON_FILE} > ${ORGANIZATIONS_JSON_FILE}.tmp && mv ${ORGANIZATIONS_JSON_FILE}.tmp ${ORGANIZATIONS_JSON_FILE}
         else
             echo "Warning: No organization found for domain $PEER_ORG_DOMAIN"

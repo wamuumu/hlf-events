@@ -41,7 +41,6 @@ set_organization_peer() {
     export CORE_PEER_TLS_ROOTCERT_FILE=$(echo "$peer" | jq -r '.tlsRootCertFile')
     export CORE_PEER_MSPCONFIGPATH=$(echo "$peer" | jq -r '.mspConfigPath')
     export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.address')
-    export CORE_PEER_TLS_SERVERHOSTOVERRIDE=$(echo "$peer" | jq -r '.tlsServerHostOverride')
     export CORE_PEER_TLS_ENABLED=$(echo "$peer" | jq -r '.tlsEnabled')
 
     echo "Setting environment for ${CORE_PEER_LOCALMSPID}:"
@@ -49,6 +48,5 @@ set_organization_peer() {
     echo "  Local MSP ID: ${CORE_PEER_LOCALMSPID}"
     echo "  TLS Root Cert: ${CORE_PEER_TLS_ROOTCERT_FILE}"
     echo "  MSP Config Path: ${CORE_PEER_MSPCONFIGPATH}"
-    echo "  TLS Server Host Override: ${CORE_PEER_TLS_SERVERHOSTOVERRIDE}"
     echo "  TLS Enabled: ${CORE_PEER_TLS_ENABLED}"
 }
