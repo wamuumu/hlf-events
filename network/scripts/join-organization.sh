@@ -3,6 +3,7 @@
 . ../network.config
 . set-env.sh
 . update-config.sh
+. cc-utils.sh
 
 export PATH=${PATH}:${FABRIC_BIN_PATH}
 export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
@@ -168,6 +169,32 @@ function set_anchor_peer() {
     rm ${NETWORK_CHANNEL_PATH}/*.pb
 }
 
+function deploy_chaincode() {
+    echo "Deploying chaincode ${CC_NAME} on organization ${ORG_NAME}"
+
+    # Install chaincode on all new peers
+    PEER_COUNT=$(jq -r ".\"$ORG_ID\".peers | length" ${ORGANIZATIONS_JSON_FILE})
+    for ((i=1; i<=PEER_COUNT; i++)); do
+        peer_install_chaincode $ORG_ID $i
+    done
+    echo "Chaincode installed successfully on all new peers."
+
+    resolveSequence
+
+    # Set the orderer for approvals and commits
+    set_orderer 1 
+
+    approve_chaincode
+    echo "Chaincode approved for all organizations."
+
+    # Check commit readiness for all the organizations
+    check_commit_readiness
+
+    # Commit chaincode definition
+    commit_chaincode
+    echo "Chaincode committed successfully on all peers."
+}
+
 if [ ! -d "${NETWORK_ORG_PATH}/ordererOrganizations" ]; then
     echo "Network not initialized. Exiting..."
     exit 1
@@ -184,5 +211,6 @@ generate_org_definition
 organization_up
 join_channel
 set_anchor_peer
+deploy_chaincode
 
 echo "Organization ${ORG_NAME} has been successfully added to the network."
