@@ -2,7 +2,6 @@
 
 # Load your Fabric version
 . ../network.config
-export FABRIC_VERSION
 
 # Utility: pull & convert to sandbox folder if missing
 pull_if_missing() {
@@ -132,6 +131,8 @@ start_peer_instance() {
 }
 
 main() {
+
+    echo "Using Fabric version: ${FABRIC_VERSION}"
 
     # Pull required images if not already present
     pull_if_missing fabric-orderer "$FABRIC_VERSION"
