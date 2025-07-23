@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Load your Fabric version
+# Load network configuration variables
 . ../network.config
 
 # Utility: pull & convert to sandbox folder if missing
@@ -25,6 +25,7 @@ pull_if_missing() {
     docker save hyperledger/${name}:${tag} -o ${tarball}
 
     # 3. Convert the tarball to a sandbox folder
+    # Note: --sandbox is used to create a writable directory structure, which enables older Singularity versions to run
     singularity build --sandbox ${sandbox} docker-archive://${tarball}
 
     # 4. Clean up the tarball
@@ -33,7 +34,7 @@ pull_if_missing() {
     echo "Created sandbox at ${sandbox}"
 }
 
-# helpers to create and start an orderer instance
+# Helpers to create and start an orderer instance
 create_orderer_instance() {
 
     local instance_name=$1
@@ -87,7 +88,7 @@ start_orderer_instance() {
     singularity exec instance://${instance_name} orderer > logs/${instance_name}.log 2>&1 &
 }
 
-# helpers to create and start a peer instance
+# Helpers to create and start a peer instance
 create_peer_instance() {
     
     local peer_name=$1
