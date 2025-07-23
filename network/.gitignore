@@ -2,4 +2,6 @@ channel/
 organizations/
 package/
 profiles/
-singularity/
+logs/
+data/
+sandboxes/
