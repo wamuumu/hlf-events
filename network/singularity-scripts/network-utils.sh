@@ -179,6 +179,14 @@ create_peer_instance() {
     mkdir -p ${binddir}
 
     local sandbox="${SAND}/fabric-peer"
+
+    TLSCA_CERT_BINDINGS=""
+    for org_entry in $(jq -r 'to_entries[] | .value | @base64' ${ORGANIZATIONS_JSON_FILE}); do
+        org_data=$(echo $org_entry | base64 -d)
+        org_name=$(echo $org_data | jq -r '.orgName' | tr '[:upper:]' '[:lower:]')
+        org_domain=$(echo $org_data | jq -r '.orgDomain')
+        TLSCA_CERT_BINDINGS+=" --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org_domain}/tlsca/tlsca.${org_domain}-cert.pem:/etc/hyperledger/fabric/tlsca/cert-${org_name}.pem:ro"
+    done
     
     singularity instance start \
         --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/peers/${peer_name}.${org}.testbed.local/msp:/etc/hyperledger/fabric/msp:ro \
@@ -186,8 +194,9 @@ create_peer_instance() {
         --bind ${FABRIC_CFG_PATH}/core.yaml:/etc/hyperledger/fabric/core.yaml:ro \
         --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/users/Admin@${org}.testbed.local/msp:/etc/hyperledger/fabric/admin/msp:ro \
         --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/users/Admin@${org}.testbed.local/tls:/etc/hyperledger/fabric/admin/tls:ro \
-        --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/tlsca/tlsca.${org}.testbed.local-cert.pem:/etc/hyperledger/fabric/tlsca/cert.pem:ro \
+        ${TLSCA_CERT_BINDINGS} \
         --bind ${NETWORK_CHANNEL_PATH}:/etc/hyperledger/fabric/channel:ro \
+        --bind ${NETWORK_PACKAGE_PATH}:/etc/hyperledger/fabric/chaincode:ro \
         --bind ${binddir}:/var/hyperledger/production \
         ${sandbox} ${peer_name}.${org}
 }
