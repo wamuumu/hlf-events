@@ -38,8 +38,8 @@ pull_if_missing() {
 
 # Prepare directories
 create_folders() {
-    mkdir -p "$DATA" "$LOGS" "$CONF"
-    echo "Created data, logs, and config directories at $DATA, $LOGS, and $CONF"
+    mkdir -p "$DATA" "$LOGS"
+    echo "Created data and logs directories at $DATA and $LOGS"
 
     # Create hosts file inside CONF
     HOST_FILE="$CONF/hosts"
@@ -65,8 +65,8 @@ delete_folders() {
         echo "Deleted sandbox directory: $SAND"
     fi
 
-    rm -rf "$DATA" "$LOGS" "$CONF" "$NETWORK_PROFILE_PATH" "$NETWORK_CHANNEL_PATH"
-    echo "Deleted data, logs, config, and network profile directories"
+    rm -rf "$DATA" "$LOGS" "$NETWORK_PROFILE_PATH" "$NETWORK_CHANNEL_PATH"
+    echo "Deleted data, logs and network profile directories"
 }
 
 init_profiles() {
@@ -109,11 +109,8 @@ create_orderer_instance() {
     local sandbox="${SAND}/fabric-orderer"
 
     singularity instance start \
-        --hostname ${instance_name}.ord.testbed.local \
-        --network host \
         --bind ${NETWORK_ORG_PATH}/ordererOrganizations/ord.testbed.local/orderers/${instance_name}.ord.testbed.local/msp:/var/hyperledger/orderer/msp:ro \
         --bind ${NETWORK_ORG_PATH}/ordererOrganizations/ord.testbed.local/orderers/${instance_name}.ord.testbed.local/tls:/var/hyperledger/orderer/tls:ro \
-        --bind ${CONF}/hosts:/etc/hosts:ro \
         --bind ${binddir}:/var/hyperledger/production/orderer \
         ${sandbox} ${instance_name}
 }
@@ -121,13 +118,11 @@ create_orderer_instance() {
 start_orderer_instance() {
     
     local instance_name=$1
-    local endpoint=$2
-    local listen_port=$3
-    local admin_port=$4
-    local ops_port=$5
+    local listen_port=$2
+    local admin_port=$3
+    local ops_port=$4
 
-    echo "Starting ${instance_name} on ${endpoint}:${listen_port}..."
-    export SINGULARITYENV_ORDERER_GENERAL_LISTENADDRESS=${endpoint}
+    export SINGULARITYENV_ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
     export SINGULARITYENV_ORDERER_GENERAL_LISTENPORT=${listen_port}
     export SINGULARITYENV_ORDERER_GENERAL_LOCALMSPID=OrdererMSP
     export SINGULARITYENV_ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
@@ -149,9 +144,9 @@ start_orderer_instance() {
     export SINGULARITYENV_ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
     export SINGULARITYENV_ORDERER_ADMIN_TLS_ROOTCAS='[/var/hyperledger/orderer/tls/ca.crt]'
     export SINGULARITYENV_ORDERER_ADMIN_TLS_CLIENTROOTCAS='[/var/hyperledger/orderer/tls/ca.crt]'
-    export SINGULARITYENV_ORDERER_ADMIN_LISTENADDRESS=${endpoint}:${admin_port}
+    export SINGULARITYENV_ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:${admin_port}
 
-    export SINGULARITYENV_ORDERER_OPERATIONS_LISTENADDRESS=${endpoint}:${ops_port}
+    export SINGULARITYENV_ORDERER_OPERATIONS_LISTENADDRESS=0.0.0.0:${ops_port}
     export SINGULARITYENV_ORDERER_METRICS_PROVIDER=prometheus
 
     singularity exec instance://${instance_name} orderer > ${LOGS}/${instance_name}.log 2>&1 &
@@ -160,11 +155,6 @@ start_orderer_instance() {
     ORD_KEY=$(jq -r "to_entries[] | select(.value.ordName == \"$instance_name\") | .key" ${ORDERERS_JSON_FILE})
     ORD_DOMAIN=$(jq -r "to_entries[] | select(.value.ordName == \"$instance_name\") | .value.ordDomain" ${ORDERERS_JSON_FILE})
     ORD_TLS_HOST=$(jq -r "to_entries[] | select(.value.ordName == \"$instance_name\") | .value.ordHost" ${ORDERERS_JSON_FILE})
-
-    # Append the orderer to hosts file
-    HOST_FILE="$CONF/hosts"
-    HOST_IP=$(hostname -i)
-    echo "${HOST_IP}    ${ORD_TLS_HOST}" >> "$HOST_FILE"
 
     jq \
         --arg ordKey "$ORD_KEY" \
@@ -191,8 +181,6 @@ create_peer_instance() {
     local sandbox="${SAND}/fabric-peer"
     
     singularity instance start \
-        --hostname ${peer_name}.${org}.testbed.local \
-        --network host \
         --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/peers/${peer_name}.${org}.testbed.local/msp:/etc/hyperledger/fabric/msp:ro \
         --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/peers/${peer_name}.${org}.testbed.local/tls:/etc/hyperledger/fabric/tls:ro \
         --bind ${FABRIC_CFG_PATH}/core.yaml:/etc/hyperledger/fabric/core.yaml:ro \
@@ -200,7 +188,6 @@ create_peer_instance() {
         --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/users/Admin@${org}.testbed.local/tls:/etc/hyperledger/fabric/admin/tls:ro \
         --bind ${NETWORK_ORG_PATH}/peerOrganizations/${org}.testbed.local/tlsca/tlsca.${org}.testbed.local-cert.pem:/etc/hyperledger/fabric/tlsca/cert.pem:ro \
         --bind ${NETWORK_CHANNEL_PATH}:/etc/hyperledger/fabric/channel:ro \
-        --bind ${CONF}/hosts:/etc/hosts:ro \
         --bind ${binddir}:/var/hyperledger/production \
         ${sandbox} ${peer_name}.${org}
 }
@@ -208,46 +195,40 @@ create_peer_instance() {
 start_peer_instance() {
     local peer_name=$1
     local org=$2
-    local endpoint=$3
-    local listen_port=$4
-    local cc_port=$5
-    local ops_port=$6
+    local listen_port=$3
+    local cc_port=$4
+    local ops_port=$5
 
-    echo "Starting ${peer_name}.${org}..."
+    PEER_ORG_DOMAIN="${org}.testbed.local"
+    PEER_HOSTNAME="${peer_name}.${PEER_ORG_DOMAIN}"
+    PEER_INSTANCE="${peer_name}.${org}"
+
+    echo "Starting ${PEER_INSTANCE}..."
     export SINGULARITYENV_FABRIC_CFG_PATH=/etc/hyperledger/fabric
     export SINGULARITYENV_FABRIC_LOGGING_SPEC=INFO
     export SINGULARITYENV_CORE_PEER_TLS_ENABLED=true
-    export SINGULARITYENV_CORE_PEER_ID=${peer_name}.${org}
-    export SINGULARITYENV_CORE_PEER_ADDRESS=${peer_name}.${org}.testbed.local:${listen_port}
-    export SINGULARITYENV_CORE_PEER_LISTENADDRESS=${endpoint}:${listen_port}
-    export SINGULARITYENV_CORE_PEER_CHAINCODEADDRESS=${peer_name}.${org}.testbed.local:${cc_port}
-    export SINGULARITYENV_CORE_PEER_CHAINCODELISTENADDRESS=${endpoint}:${cc_port}
-    export SINGULARITYENV_CORE_PEER_GOSSIP_BOOTSTRAP=${peer_name}.${org}.testbed.local:${listen_port}
-    export SINGULARITYENV_CORE_PEER_GOSSIP_EXTERNALENDPOINT=${peer_name}.${org}.testbed.local:${listen_port}
+    export SINGULARITYENV_CORE_PEER_ID=${PEER_INSTANCE}
+    export SINGULARITYENV_CORE_PEER_ADDRESS=${PEER_HOSTNAME}:${listen_port}
+    export SINGULARITYENV_CORE_PEER_LISTENADDRESS=0.0.0.0:${listen_port}
+    export SINGULARITYENV_CORE_PEER_CHAINCODEADDRESS=${PEER_HOSTNAME}:${cc_port}
+    export SINGULARITYENV_CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:${cc_port}
+    export SINGULARITYENV_CORE_PEER_GOSSIP_BOOTSTRAP=${PEER_HOSTNAME}:${listen_port}
+    export SINGULARITYENV_CORE_PEER_GOSSIP_EXTERNALENDPOINT=${PEER_HOSTNAME}:${listen_port}
     export SINGULARITYENV_CORE_PEER_LOCALMSPID=${org^}MSP
     export SINGULARITYENV_CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
-    export SINGULARITYENV_CORE_OPERATIONS_LISTENADDRESS=${peer_name}.${org}.testbed.local:${ops_port}
+    export SINGULARITYENV_CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:${ops_port}
     export SINGULARITYENV_CORE_METRICS_PROVIDER=prometheus
 
-    singularity exec instance://${peer_name}.${org} peer node start > ${LOGS}/${peer_name}.${org}.log 2>&1 &
-
-    # Append the peer to hosts file
-    HOST_FILE="$CONF/hosts"
-    HOST_IP=$(hostname -i)
-    echo "${HOST_IP}    ${peer_name}.${org}.testbed.local" >> "$HOST_FILE"
+    singularity exec instance://${PEER_INSTANCE} peer node start > ${LOGS}/${PEER_INSTANCE}.log 2>&1 &
 
     # Fill the peer profile
-    PEER_ORG_DOMAIN="${org}.testbed.local"
     ORG_KEY=$(jq -r "to_entries[] | select(.value.orgDomain == \"${PEER_ORG_DOMAIN}\") | .key" ${ORGANIZATIONS_JSON_FILE})
     jq \
         --arg orgKey "$ORG_KEY" \
-        --arg peerName "${peer_name}.${org}" \
-        --arg peerAddress "localhost:${listen_port}" \
+        --arg peerName "${PEER_INSTANCE}" \
         --arg listenAddress "localhost:${listen_port}" \
         --arg localMspId "$SINGULARITYENV_CORE_PEER_LOCALMSPID" \
-        --arg tlsRootCertFile "${NETWORK_ORG_PATH}/peerOrganizations/${PEER_ORG_DOMAIN}/tlsca/tlsca.${PEER_ORG_DOMAIN}-cert.pem" \
-        --arg mspConfigPath "${NETWORK_ORG_PATH}/peerOrganizations/${PEER_ORG_DOMAIN}/users/Admin@${PEER_ORG_DOMAIN}/msp" \
-        '.[$orgKey].peers += [{peerName: $peerName, peerAddress: $peerAddress, listenAddress: $listenAddress, localMspId: $localMspId, tlsRootCertFile: $tlsRootCertFile, mspConfigPath: $mspConfigPath}]' \
+        '.[$orgKey].peers += [{peerName: $peerName, listenAddress: $listenAddress, localMspId: $localMspId}]' \
         ${ORGANIZATIONS_JSON_FILE} | sponge ${ORGANIZATIONS_JSON_FILE}
-    echo "Updated peer profile in ${ORGANIZATIONS_JSON_FILE} for ${peer_name}.${org}"
+    echo "Updated peer profile in ${ORGANIZATIONS_JSON_FILE} for ${PEER_INSTANCE}"
 }   

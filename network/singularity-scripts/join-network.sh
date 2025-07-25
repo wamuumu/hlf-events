@@ -36,7 +36,7 @@ join_orderer_to_channel() {
             -o ${ORDERER_ADMIN_ADDR} \
             --ca-file ${ORDERER_ADMIN_TLS_CA} \
             --client-cert ${ORDERER_ADMIN_TLS_SIGN_CERT} \
-            --client-key ${ORDERER_ADMIN_TLS_PRIVATE_KEY} >> ${LOGS}/${ORDERER_NAME}.log
+            --client-key ${ORDERER_ADMIN_TLS_PRIVATE_KEY} >> ${LOGS}/${ORDERER_NAME}-join.log 2>&1
         echo "Orderer ${ORDERER_HOST} joined channel '${NETWORK_CHANNEL_NAME}' successfully."
     fi
 }
@@ -45,7 +45,7 @@ join_peer_to_channel() {
     set_organization_peer $1 $2
     echo "Joining ${PEER_NAME} to channel '${NETWORK_CHANNEL_NAME}'..."
     export SINGULARITYENV_BLOCKFILE="/etc/hyperledger/fabric/channel/genesis.block"
-    singularity exec instance://${PEER_NAME} peer channel join -b ${BLOCKFILE}
+    singularity exec instance://${PEER_NAME} peer channel join -b ${BLOCKFILE} > ${LOGS}/${PEER_NAME}-join.log 2>&1
     echo "Peer ${PEER_NAME} joined channel '${NETWORK_CHANNEL_NAME}' successfully."
 }
 
