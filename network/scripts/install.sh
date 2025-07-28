@@ -28,6 +28,7 @@ pull_binaries() {
 
 # Check if docker is installed
 if ! command -v docker &> /dev/null; then
+    # TODO: should we install docker here for the user?
     echo "Docker is not installed. Please install Docker to run the network."
     exit 1
 else
@@ -35,6 +36,7 @@ else
 fi
 
 # Check CC_SRC_LANG and tell user to install the required language runtime
+# TODO: should we install the runtime language here for the user?
 if [ "$CC_SRC_LANG" = "go" ]; then
     if ! command -v go &> /dev/null; then
         echo "CC_SRC_LANG is set to Go, but Go is not installed. Please install Go to run the chaincode."
@@ -51,7 +53,7 @@ elif [ "$CC_SRC_LANG" = "javascript" ] || [ "$CC_SRC_LANG" = "typescript" ]; the
     fi
 fi
 
-# Update package lists and install required packages
+# Update and install required packages
 sudo apt-get update
 sudo apt-get install -y jq yq
 
