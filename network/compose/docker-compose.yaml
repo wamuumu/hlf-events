@@ -136,7 +136,8 @@ services:
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
-      - ../organizations/peerOrganizations/org1.testbed.local/peers/peer0.org1.testbed.local/:/etc/hyperledger/fabric
+      - ../organizations/peerOrganizations/org1.testbed.local/peers/peer0.org1.testbed.local/msp:/etc/hyperledger/fabric/msp
+      - ../organizations/peerOrganizations/org1.testbed.local/peers/peer0.org1.testbed.local/tls:/etc/hyperledger/fabric/tls
       - peer0_org1_data:/var/hyperledger/production
     ports:
       - 7051:7051
@@ -179,7 +180,8 @@ services:
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
-      - ../organizations/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local/:/etc/hyperledger/fabric
+      - ../organizations/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local/msp:/etc/hyperledger/fabric/msp
+      - ../organizations/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local/tls:/etc/hyperledger/fabric/tls
       - peer0_org2_data:/var/hyperledger/production
     ports:
       - 8051:8051
@@ -222,7 +224,8 @@ services:
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
-      - ../organizations/peerOrganizations/org3.testbed.local/peers/peer0.org3.testbed.local/:/etc/hyperledger/fabric
+      - ../organizations/peerOrganizations/org3.testbed.local/peers/peer0.org3.testbed.local/msp:/etc/hyperledger/fabric/msp
+      - ../organizations/peerOrganizations/org3.testbed.local/peers/peer0.org3.testbed.local/tls:/etc/hyperledger/fabric/tls
       - peer0_org3_data:/var/hyperledger/production
     ports:
       - 9051:9051
