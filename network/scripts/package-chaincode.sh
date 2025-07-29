@@ -2,42 +2,53 @@
 
 . ../network.config
 
-export PATH=${PATH}:${FABRIC_BIN_PATH}
-export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
+export PATH=${PATH}:${NETWORK_BIN_PATH}
+export FABRIC_CFG_PATH=${NETWORK_CFG_PATH}
 
 #User has not provided a name
 if [ -z "${CC_NAME}" ]; then
-    echo "No chaincode name was provided."
+    echo "Error: No chaincode name was provided."
     exit 1
 
 # User has not provided a path
-elif [ -z "${CC_PATH}" ]; then
-    echo "No chaincode path was provided."
+elif [ -z "${CC_SRC_PATH}" ]; then
+    echo "Error: No chaincode path was provided."
     exit 1
 
 # User has not provided a language
-elif [ -z "${CC_RUNTIME_LANGUAGE}" ]; then
-    echo "No chaincode language was provided."
+elif [ -z "${CC_SRC_LANG}" ]; then
+    echo "Error: No chaincode language was provided."
+    exit 1
+
+# Make sure that the src path to the chaincode exists
+elif [ ! -d "$CC_SRC_PATH" ]; then
+    echo "Error: Path to chaincode does not exist. Please provide a different path."
     exit 1
 fi
 
-if [ -d ${NETWORK_PACKAGE_PATH} ]; then
-    rm -rf ${NETWORK_PACKAGE_PATH}
-fi
-
-mkdir -p ${NETWORK_PACKAGE_PATH}
-
-echo ${CC_NAME}
-echo ${CC_PATH}
-echo ${CC_RUNTIME_LANGUAGE}
-echo ${CC_VERSION}
-
-which peer > /dev/null
-if [ $? -ne 0 ]; then
-    echo "Peer CLI tool not found in PATH. Please install Hyperledger Fabric binaries."
-    exit 1
+CC_SRC_LANG=$(echo "$CC_SRC_LANG" | tr [:upper:] [:lower:])
+if [ "$CC_SRC_LANG" = "go" ]; then
+    CC_RUNTIME_LANG="golang"
+elif [ "$CC_SRC_LANG" = "javascript" ] || [ "$CC_SRC_LANG" = "typescript" ]; then
+    CC_RUNTIME_LANG="node"
 else
-    echo "Peer CLI tool found at: $(which peer)"
-    peer lifecycle chaincode package ${NETWORK_PACKAGE_PATH}/${CC_NAME}_${CC_VERSION}.tar.gz --path ${CC_PATH} --lang ${CC_RUNTIME_LANGUAGE} --label ${CC_NAME}_${CC_VERSION}
-    echo "Chaincode packaged successfully at ${NETWORK_PACKAGE_PATH}/${CC_NAME}_${CC_VERSION}.tar.gz"
+    echo "Error: The chaincode language ${CC_SRC_LANG} is not supported by this script. Supported chaincode languages are: go, javascript, typescript."
+    exit 1
 fi
+
+CC_VERSION=$(date +%Y%m%d%H%M%S)
+
+if [ -d "${NETWORK_PKG_PATH}" ]; then
+    rm -rf ${NETWORK_PKG_PATH}
+fi
+mkdir -p ${NETWORK_PKG_PATH}
+
+echo "Chaincode name: ${CC_NAME}"
+echo "Chaincode path: ${CC_SRC_PATH}"
+echo "Chaincode language: ${CC_SRC_LANG} (${CC_RUNTIME_LANG})"
+echo "Chaincode version: ${CC_VERSION}"
+
+
+echo "Peer CLI tool found at: $(which peer)"
+peer lifecycle chaincode package ${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANG} --label ${CC_NAME}_${CC_VERSION}
+echo "Chaincode packaged successfully at ${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz"
