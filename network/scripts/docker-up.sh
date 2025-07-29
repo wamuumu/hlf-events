@@ -2,14 +2,11 @@
 
 . ids-utils.sh
 
-export COMPOSE_BAKE=true
-export FABRIC_VERSION
-
 COMPOSE_FILE=${NETWORK_CMP_PATH}/docker-compose.yaml
 CRYPTO_CONFIG_FILE=${NETWORK_CFG_PATH}/crypto-config.yaml
 
 # Create runtime directories
-mkdir -p ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
+mkdir -p ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH} ${NETWORK_LOG_PATH}
 
 # Create IDs files
 init_organizations ${CRYPTO_CONFIG_FILE}

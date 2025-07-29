@@ -1,9 +1,6 @@
 #!/bin/bash
 
-. ../network.config
-
-export PATH=${PATH}:${NETWORK_BIN_PATH}
-export FABRIC_CFG_PATH=${NETWORK_CFG_PATH}
+. set-env.sh
 
 #User has not provided a name
 if [ -z "${CC_NAME}" ]; then
@@ -49,6 +46,5 @@ echo "Chaincode language: ${CC_SRC_LANG} (${CC_RUNTIME_LANG})"
 echo "Chaincode version: ${CC_VERSION}"
 
 
-echo "Peer CLI tool found at: $(which peer)"
 peer lifecycle chaincode package ${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANG} --label ${CC_NAME}_${CC_VERSION}
 echo "Chaincode packaged successfully at ${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz"

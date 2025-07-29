@@ -1,6 +1,5 @@
 #!/bin/bash
 
-. ../network.config
 . set-env.sh
 
 init_organizations() {
