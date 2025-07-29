@@ -45,6 +45,5 @@ echo "Chaincode path: ${CC_SRC_PATH}"
 echo "Chaincode language: ${CC_SRC_LANG} (${CC_RUNTIME_LANG})"
 echo "Chaincode version: ${CC_VERSION}"
 
-
-peer lifecycle chaincode package ${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANG} --label ${CC_NAME}_${CC_VERSION}
-echo "Chaincode packaged successfully at ${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz"
+peer lifecycle chaincode package ${CC_PKG_PATH} --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANG} --label ${CC_NAME}_${CC_VERSION}
+echo "Chaincode packaged successfully at ${CC_PKG_PATH}"

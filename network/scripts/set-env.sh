@@ -2,14 +2,19 @@
 
 . ../network.config
 
-export PATH=${PATH}:${FABRIC_BIN_PATH}
-export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
+export PATH=${PATH}:${NETWORK_BIN_PATH}
+export FABRIC_CFG_PATH=${NETWORK_CFG_PATH}
+export COMPOSE_BAKE=true
+export FABRIC_VERSION
 
-ORDERERS_JSON_FILE=${NETWORK_PROFILE_PATH}/orderers.json
-ORGANIZATIONS_JSON_FILE=${NETWORK_PROFILE_PATH}/organizations.json
+# General Files
+GENESIS_BLOCK=${NETWORK_CHN_PATH}/genesis.block
+CC_PKG_PATH=${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz
+ORD_JSON_FILE=${NETWORK_IDS_PATH}/orderers.json
+ORG_JSON_FILE=${NETWORK_IDS_PATH}/organizations.json
 
 set_orderer() {
-    local orderer=$(jq -r ".\"$1\"" ${ORDERERS_JSON_FILE})
+    local orderer=$(jq -r ".\"$1\"" ${ORD_JSON_FILE})
 
     export ORDERER_ADDR=$(echo "$orderer" | jq -r '.address')
     export ORDERER_ADMIN_ADDR=$(echo "$orderer" | jq -r '.adminListenAddress')
@@ -27,7 +32,7 @@ set_orderer() {
 }
 
 set_organization_peer() {
-    local organization=$(jq -r ".\"$1\"" ${ORGANIZATIONS_JSON_FILE})
+    local organization=$(jq -r ".\"$1\"" ${ORG_JSON_FILE})
     local peer=$(echo "$organization" | jq -r ".peers[$2 - 1]")
 
     # Check if peer exists or is null

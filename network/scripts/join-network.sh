@@ -24,7 +24,7 @@ create_genesis_block() {
 }
 
 join_orderer_to_channel() {
-    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/join/orderer.log 2>&1
+    set_orderer $1 >> ${NETWORK_LOG_PATH}/join/orderer.log 2>&1
     osnadmin channel join \
         --channelID ${NETWORK_CHN_NAME} \
         --config-block ${GENESIS_BLOCK} \

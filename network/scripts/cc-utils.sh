@@ -1,105 +1,108 @@
 #!/bin/bash
 
-. ../network.config
 . set-env.sh
 
-CC_PACKAGE_PATH="${NETWORK_PACKAGE_PATH}/${CC_NAME}_${CC_VERSION}.tar.gz"
-PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PACKAGE_PATH})
+mkdir -p ${NETWORK_LOG_PATH}/chaincode
 
-ORGANIZATIONS_JSON_FILE=${NETWORK_PROFILE_PATH}/organizations.json
+calculate_package_id() {
+    export PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PKG_PATH})
+    echo "Calculated package ID: ${PACKAGE_ID}"
+}
 
 peer_install_chaincode() {
-    set_organization_peer $1 $2
-    
-    echo "Installing chaincode on ${CORE_PEER_ADDRESS}..."
-    peer lifecycle chaincode install ${CC_PACKAGE_PATH}
+    set_organization_peer $1 $2 >> ${NETWORK_LOG_PATH}/chaincode/install.log 2>&1
+    peer lifecycle chaincode install ${CC_PKG_PATH} >> ${NETWORK_LOG_PATH}/chaincode/install.log 2>&1
+    echo "Chaincode installed on peer ${CORE_PEER_LOCALMSPID} (${CORE_PEER_ADDRESS})"
 }
 
 approve_chaincode() {
 
-    ORG_COUNT=$(jq -r 'length' ${ORGANIZATIONS_JSON_FILE})
+    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
+
+    ORG_COUNT=$(jq -r 'length' ${ORG_JSON_FILE})
 
     for ((i=1; i<=ORG_COUNT; i++)); do
-        set_organization_peer $i 1
+        set_organization_peer $i 1 >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
 
         peer lifecycle chaincode approveformyorg \
             -o ${ORDERER_ADDR} \
             --ordererTLSHostnameOverride ${ORDERER_HOST} \
             --tls \
             --cafile ${ORDERER_ADMIN_TLS_CA} \
-            --channelID ${NETWORK_CHANNEL_NAME} \
+            --channelID ${NETWORK_CHN_NAME} \
             --name ${CC_NAME} \
             --version ${CC_VERSION} \
             --package-id ${PACKAGE_ID} \
-            --sequence ${CC_SEQUENCE}
+            --sequence ${CC_SEQUENCE} \
+            >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
+        echo "Chaincode approved for organization ${CORE_PEER_LOCALMSPID}"
     done
 }
 
-function resolveSequence() {
-    COMMITTED_CC_SEQUENCE=$(peer lifecycle chaincode querycommitted --channelID $NETWORK_CHANNEL_NAME --name ${CC_NAME} 2>/dev/null | sed -n "/Version:/{s/.*Sequence: //; s/, Endorsement Plugin:.*$//; p;}")
+resolveSequence() {
+    COMMITTED_CC_SEQUENCE=$(peer lifecycle chaincode querycommitted --channelID $NETWORK_CHN_NAME --name ${CC_NAME} 2>/dev/null | sed -n "/Version:/{s/.*Sequence: //; s/, Endorsement Plugin:.*$//; p;}")
     
-    # if there are no committed versions, then set the sequence to 1
     if [ -z "$COMMITTED_CC_SEQUENCE" ]; then
-        CC_SEQUENCE=1
+        export CC_SEQUENCE=1
     else
-        APPROVED_CC_SEQUENCE=$(peer lifecycle chaincode queryapproved --channelID $NETWORK_CHANNEL_NAME --name ${CC_NAME} 2>/dev/null | sed -n "/sequence:/{s/^sequence: //; s/, version:.*$//; p;}")
+        APPROVED_CC_SEQUENCE=$(peer lifecycle chaincode queryapproved --channelID $NETWORK_CHN_NAME --name ${CC_NAME} 2>/dev/null | sed -n "/sequence:/{s/^sequence: //; s/, version:.*$//; p;}")
 
         if [ -z "$APPROVED_CC_SEQUENCE" ] || [ "$COMMITTED_CC_SEQUENCE" == "$APPROVED_CC_SEQUENCE" ]; then
-            CC_SEQUENCE=$((COMMITTED_CC_SEQUENCE+1))
+            export CC_SEQUENCE=$((COMMITTED_CC_SEQUENCE+1))
         else
-            CC_SEQUENCE=$APPROVED_CC_SEQUENCE
+            export CC_SEQUENCE=$APPROVED_CC_SEQUENCE
         fi
     fi
 
-    export CC_SEQUENCE
     echo "Resolved chaincode sequence: ${CC_SEQUENCE}"
+}
+
+resolveVersion() {
+    export CC_VERSION=$(echo "$PACKAGE_ID" | sed -E 's/^.*_([^:]+):.*$/\1/')
+    echo "Resolved chaincode version: ${CC_VERSION}"
 }
 
 check_commit_readiness() {
     peer lifecycle chaincode checkcommitreadiness \
-    --channelID ${NETWORK_CHANNEL_NAME} \
-    --name ${CC_NAME} \
-    --version ${CC_VERSION} \
-    --sequence ${CC_SEQUENCE} \
-    --output json
+        --channelID ${NETWORK_CHN_NAME} \
+        --name ${CC_NAME} \
+        --version ${CC_VERSION} \
+        --sequence ${CC_SEQUENCE} \
+        --output json \
+        >> ${NETWORK_LOG_PATH}/chaincode/readiness.log 2>&1
 }
 
 commit_chaincode() {
 
-    ORG_COUNT=$(jq -r 'length' ${ORGANIZATIONS_JSON_FILE})
-
     PEER_ADDRESSES=""
     TLS_ROOT_CERT_FILES=""
     
+    ORG_COUNT=$(jq -r 'length' ${ORG_JSON_FILE})
     for ((i=1; i<=ORG_COUNT; i++)); do
 
-        local organization=$(jq -r ".\"$i\"" ${ORGANIZATIONS_JSON_FILE})
+        local organization=$(jq -r ".\"$i\"" ${ORG_JSON_FILE})
         local peers_count=$(echo "$organization" | jq -r '.peers | length')
 
-        # Loop through all peers in this organization
         for ((j=1; j<=peers_count; j++)); do
-            set_organization_peer $i $j
-            
-            if [ ! -z "${PEER_ADDRESSES}" ]; then
-                PEER_ADDRESSES="${PEER_ADDRESSES} --peerAddresses ${CORE_PEER_ADDRESS}"
-                TLS_ROOT_CERT_FILES="${TLS_ROOT_CERT_FILES} --tlsRootCertFiles ${CORE_PEER_TLS_ROOTCERT_FILE}"
-            else
-                PEER_ADDRESSES="--peerAddresses ${CORE_PEER_ADDRESS}"
-                TLS_ROOT_CERT_FILES="--tlsRootCertFiles ${CORE_PEER_TLS_ROOTCERT_FILE}"
-            fi
+            set_organization_peer $i $j >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
+
+            PEER_ADDRESSES+=" --peerAddresses ${CORE_PEER_ADDRESS}"
+            TLS_ROOT_CERT_FILES+=" --tlsRootCertFiles ${CORE_PEER_TLS_ROOTCERT_FILE}"
         done
     done
 
-    echo "Committing chaincode definition..."
+    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
     peer lifecycle chaincode commit \
         -o ${ORDERER_ADDR} \
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         --tls \
         --cafile ${ORDERER_ADMIN_TLS_CA} \
-        --channelID ${NETWORK_CHANNEL_NAME} \
+        --channelID ${NETWORK_CHN_NAME} \
         --name ${CC_NAME} \
         --version ${CC_VERSION} \
         --sequence ${CC_SEQUENCE} \
         ${PEER_ADDRESSES} \
-        ${TLS_ROOT_CERT_FILES}        
+        ${TLS_ROOT_CERT_FILES} \
+        >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
+    echo "Chaincode committed successfully on all peers."      
 }
