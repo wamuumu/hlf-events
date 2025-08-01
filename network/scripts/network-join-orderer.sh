@@ -17,11 +17,11 @@ if [ ! -f "$ORDERER_COMPOSE_FILE" ]; then
     exit 1
 fi
 
-# Generate the orderer identity to be used with set-env.sh
-generate_orderer ${ORDERER_COMPOSE_FILE}
-
-# Set the environment variables for the orderer
-set_orderer_from_file ${ORD_ID_FILE}
+ORD_ID=$(extract_orderer_id ${ORDERER_COMPOSE_FILE})
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to extract orderer ID from compose file."
+    exit 1
+fi
 
 # Join the orderer to the network
-join_orderer
+join_orderer ${ORD_ID}

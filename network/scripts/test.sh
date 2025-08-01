@@ -5,19 +5,27 @@
 
 ./network-init.sh # As the admin organization
 
-./docker-up.sh "${COMPOSE_FILES[0]}" # As the organization that is running the orderer 1
-./docker-up.sh "${COMPOSE_FILES[1]}" # As the organization that is running the orderer 2
-./docker-up.sh "${COMPOSE_FILES[2]}" # As the organization that is running the peers of org1
-./docker-up.sh "${COMPOSE_FILES[3]}" # As the organization that is running the peers of org2
-./docker-up.sh "${COMPOSE_FILES[4]}" # As the organization that is running the peers of org3
+# Docker setup
+for orderer in "${ORDERER_COMPOSE_FILES[@]}"; do
+    ./docker-up.sh "${orderer}" # Initialize the container for the orderer
+done
+for organization in "${ORGANIZATION_COMPOSE_FILES[@]}"; do
+    ./docker-up.sh "${organization}" # Initialize the container for each organization
+done
 
-./network-join-orderer.sh "${COMPOSE_FILES[0]}" # Join the first orderer to the network
-./network-join-orderer.sh "${COMPOSE_FILES[1]}" # Join the second orderer to the network
+# Channel setup
+for orderer in "${ORDERER_COMPOSE_FILES[@]}"; do
+    ./network-join-orderer.sh "${orderer}" # Join each orderer to the network
+done
+for organization in "${ORGANIZATION_COMPOSE_FILES[@]}"; do
+    ./network-join-organization.sh "${organization}" # Join each organization peer to the network
+done
 
 sleep 5 
 
-./docker-down.sh "${COMPOSE_FILES[0]}" --hard
-./docker-down.sh "${COMPOSE_FILES[1]}" --hard
-./docker-down.sh "${COMPOSE_FILES[2]}" --hard
-./docker-down.sh "${COMPOSE_FILES[3]}" --hard
-./docker-down.sh "${COMPOSE_FILES[4]}" --hard
+for orderer in "${ORDERER_COMPOSE_FILES[@]}"; do
+    ./docker-down.sh "${orderer}" --hard
+done
+for organization in "${ORGANIZATION_COMPOSE_FILES[@]}"; do
+    ./docker-down.sh "${organization}" --hard
+done

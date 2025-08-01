@@ -14,5 +14,6 @@ generate_crypto ${CRYPTO_CONFIG_FILE}
 # Generate the genesis block
 generate_genesis ${CONFIGTX_FILE}
 
-# Generate identities
-generate_identities ${CONFIGTX_FILE} ${CRYPTO_CONFIG_FILE}
+# Generate the orderer identities
+generate_orderers ${ORDERER_COMPOSE_FILES[@]}
+generate_organizations ${CRYPTO_CONFIG_FILE}

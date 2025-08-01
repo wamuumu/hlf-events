@@ -18,6 +18,8 @@ generate_genesis() {
 }
 
 join_orderer() {
+    local orderer_id=$1
+    set_orderer ${orderer_id}
     osnadmin channel join \
         --channelID ${NETWORK_CHN_NAME} \
         --config-block ${GENESIS_BLOCK} \
@@ -34,87 +36,92 @@ join_orderer() {
     fi
 }
 
-join_peer() {
-    set_organization_peer $1 $2
-    peer channel join -b ${GENESIS_BLOCK}
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to join peer ${CORE_PEER_LOCALMSPID} (${CORE_PEER_ADDRESS}) to channel '${NETWORK_CHN_NAME}'. Check ${NETWORK_LOG_PATH}/join/peer.log for details."
-        exit 1
-    else
-        echo "Peer ${CORE_PEER_LOCALMSPID} (${CORE_PEER_ADDRESS}) joined channel '${NETWORK_CHN_NAME}' successfully."
-    fi
-}
-
 join_organization() {
-    echo "Joining organization ${ORG_NAME} to the channel ${NETWORK_CHN_NAME}"
+    local peer_count=$(jq -r '. | length' ${PEERS_JSON_FILE})
 
-    fetch_channel_config 1
-    # Add the new organization to the config
-    jq -s --arg org_name "${ORG_NAME}" '.[0] * {"channel_group":{"groups":{"Application":{"groups": {($org_name + "MSP"):.[1]}}}}}' ${ORIGINAL} ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json > ${MODIFIED}
-    
-    create_update_transaction
+    for ((i=1; i<=peer_count; i++)); do
+        set_peer ${i}
+        peer channel join -b ${GENESIS_BLOCK}
 
-    # In order to add the organization, the admin policies must be satisfied.
-    # This requires that "MAJORITY of the organizations" sign the config update transaction.
-    # Sign with all the peers of all organizations
-    
-    for ((i=1; i<=${ORG_COUNT}; i++)); do
-        PEER_COUNT=$(jq -r ".\"$i\".peers | length" ${ORGANIZATIONS_JSON_FILE})
-        for ((j=1; j<=PEER_COUNT; j++)); do
-            set_organization_peer $i $j
-            peer channel signconfigtx -f ${OUTPUT}
-        done
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to join peer ${CORE_PEER_ADDRESS} to channel '${NETWORK_CHN_NAME}'."
+            exit 1
+        else
+            echo "Peer ${CORE_PEER_ADDRESS} joined channel '${NETWORK_CHN_NAME}' successfully."
+        fi
     done
-
-    # Submit the signed config update transaction to the orderer
-    set_orderer 1
-    peer channel update \
-        -f ${OUTPUT} \
-        -c ${NETWORK_CHN_NAME} \
-        -o ${ORDERER_ADDR} \
-        --ordererTLSHostnameOverride ${ORDERER_HOST} \
-        --tls \
-        --cafile ${ORDERER_ADMIN_TLS_CA}
-
-    # Remove all the intermediary files, except for the genesis.block
-    rm ${NETWORK_CHN_PATH}/*.json
-    rm ${NETWORK_CHN_PATH}/*.pb
-
-    BLOCKFILE=${NETWORK_CHN_PATH}/genesis.block
-    PEER_COUNT=$(jq -r ".\"$ORG_ID\".peers | length" ${ORGANIZATIONS_JSON_FILE})
-    for ((i=1; i<=PEER_COUNT; i++)); do
-        set_organization_peer ${ORG_ID} $i
-        peer channel join -b $BLOCKFILE
-    done
-    echo "All peers of organization ${ORG_NAME} successfully joined the channel ${NETWORK_CHN_NAME}"
-
-    echo "Organization ${ORG_NAME} successfully added to channel ${NETWORK_CHN_NAME}"
 }
 
-set_anchor_peer() {
-    echo "Setting anchor peer for organization ${ORG_NAME} on channel ${NETWORK_CHN_NAME}"
+# join_organization() {
+#     echo "Joining organization ${ORG_NAME} to the channel ${NETWORK_CHN_NAME}"
 
-    # Fetch the current channel configuration to add the anchor peer
-    fetch_channel_config ${ORG_ID}
-
-    # Set the first peer as the anchor peer
-    ANCHOR_PEER=$(jq -r ".\"$ORG_ID\".peers[0].listenAddress" ${ORGANIZATIONS_JSON_FILE})
-    PEER_HOST=$(echo $ANCHOR_PEER | cut -d: -f1)
-    PEER_PORT=$(echo $ANCHOR_PEER | cut -d: -f2)
-    jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'${PEER_HOST}'","port": '${PEER_PORT}'}]},"version": "0"}}' ${NETWORK_CHN_PATH}/config.json > ${NETWORK_CHN_PATH}/modified_config.json
-
-    # Create the anchor peer update transaction
-    create_update_transaction
-
-    peer channel update \
-        -f ${OUTPUT} \
-        -c ${NETWORK_CHN_NAME} \
-        -o ${ORDERER_ADDR} \
-        --ordererTLSHostnameOverride ${ORDERER_HOST} \
-        --tls \
-        --cafile ${ORDERER_ADMIN_TLS_CA}
+#     fetch_channel_config 1
+#     # Add the new organization to the config
+#     jq -s --arg org_name "${ORG_NAME}" '.[0] * {"channel_group":{"groups":{"Application":{"groups": {($org_name + "MSP"):.[1]}}}}}' ${ORIGINAL} ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json > ${MODIFIED}
     
-    # Remove all the intermediary files, except for the genesis.block
-    rm ${NETWORK_CHN_PATH}/*.json
-    rm ${NETWORK_CHN_PATH}/*.pb
-}
+#     create_update_transaction
+
+#     # In order to add the organization, the admin policies must be satisfied.
+#     # This requires that "MAJORITY of the organizations" sign the config update transaction.
+#     # Sign with all the peers of all organizations
+    
+#     for ((i=1; i<=${ORG_COUNT}; i++)); do
+#         PEER_COUNT=$(jq -r ".\"$i\".peers | length" ${ORGANIZATIONS_JSON_FILE})
+#         for ((j=1; j<=PEER_COUNT; j++)); do
+#             set_organization_peer $i $j
+#             peer channel signconfigtx -f ${OUTPUT}
+#         done
+#     done
+
+#     # Submit the signed config update transaction to the orderer
+#     set_orderer 1
+#     peer channel update \
+#         -f ${OUTPUT} \
+#         -c ${NETWORK_CHN_NAME} \
+#         -o ${ORDERER_ADDR} \
+#         --ordererTLSHostnameOverride ${ORDERER_HOST} \
+#         --tls \
+#         --cafile ${ORDERER_ADMIN_TLS_CA}
+
+#     # Remove all the intermediary files, except for the genesis.block
+#     rm ${NETWORK_CHN_PATH}/*.json
+#     rm ${NETWORK_CHN_PATH}/*.pb
+
+#     BLOCKFILE=${NETWORK_CHN_PATH}/genesis.block
+#     PEER_COUNT=$(jq -r ".\"$ORG_ID\".peers | length" ${ORGANIZATIONS_JSON_FILE})
+#     for ((i=1; i<=PEER_COUNT; i++)); do
+#         set_organization_peer ${ORG_ID} $i
+#         peer channel join -b $BLOCKFILE
+#     done
+#     echo "All peers of organization ${ORG_NAME} successfully joined the channel ${NETWORK_CHN_NAME}"
+
+#     echo "Organization ${ORG_NAME} successfully added to channel ${NETWORK_CHN_NAME}"
+# }
+
+# set_anchor_peer() {
+#     echo "Setting anchor peer for organization ${ORG_NAME} on channel ${NETWORK_CHN_NAME}"
+
+#     # Fetch the current channel configuration to add the anchor peer
+#     fetch_channel_config ${ORG_ID}
+
+#     # Set the first peer as the anchor peer
+#     ANCHOR_PEER=$(jq -r ".\"$ORG_ID\".peers[0].listenAddress" ${ORGANIZATIONS_JSON_FILE})
+#     PEER_HOST=$(echo $ANCHOR_PEER | cut -d: -f1)
+#     PEER_PORT=$(echo $ANCHOR_PEER | cut -d: -f2)
+#     jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'${PEER_HOST}'","port": '${PEER_PORT}'}]},"version": "0"}}' ${NETWORK_CHN_PATH}/config.json > ${NETWORK_CHN_PATH}/modified_config.json
+
+#     # Create the anchor peer update transaction
+#     create_update_transaction
+
+#     peer channel update \
+#         -f ${OUTPUT} \
+#         -c ${NETWORK_CHN_NAME} \
+#         -o ${ORDERER_ADDR} \
+#         --ordererTLSHostnameOverride ${ORDERER_HOST} \
+#         --tls \
+#         --cafile ${ORDERER_ADMIN_TLS_CA}
+    
+#     # Remove all the intermediary files, except for the genesis.block
+#     rm ${NETWORK_CHN_PATH}/*.json
+#     rm ${NETWORK_CHN_PATH}/*.pb
+# }
