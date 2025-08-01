@@ -4,8 +4,9 @@
 . network-utils.sh
 . ids-utils.sh
 
-# Create runtime directories
-mkdir -p ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
+# Force create the necessary directories
+rm -rf ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
+mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 
 # Generate the crypto material
 generate_crypto ${CRYPTO_CONFIG_FILE}

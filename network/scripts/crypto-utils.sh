@@ -6,10 +6,6 @@ generate_crypto() {
 
     local CRYPTO_CONFIG_FILE=$1
 
-    if [ ! -d ${NETWORK_ORG_PATH} ]; then
-        mkdir -p ${NETWORK_ORG_PATH}/peerOrganizations ${NETWORK_ORG_PATH}/ordererOrganizations
-    fi
-
     cryptogen generate --config=${CRYPTO_CONFIG_FILE} --output=${NETWORK_ORG_PATH}
     echo "Cryptographic material generated successfully in ${NETWORK_ORG_PATH}"
 }

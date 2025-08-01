@@ -11,7 +11,10 @@
 ./docker-up.sh "${COMPOSE_FILES[3]}" # As the organization that is running the peers of org2
 ./docker-up.sh "${COMPOSE_FILES[4]}" # As the organization that is running the peers of org3
 
-./network-join-orderer.sh "${COMPOSE_FILES[0]}" "${NETWORK_IDS_PATH}/orderer1.json" # Join the first orderer to the network
+./network-join-orderer.sh "${COMPOSE_FILES[0]}" # Join the first orderer to the network
+./network-join-orderer.sh "${COMPOSE_FILES[1]}" # Join the second orderer to the network
+
+sleep 5 
 
 ./docker-down.sh "${COMPOSE_FILES[0]}" --hard
 ./docker-down.sh "${COMPOSE_FILES[1]}" --hard

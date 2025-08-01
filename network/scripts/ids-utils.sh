@@ -103,9 +103,8 @@ update_services() {
             ORDERER_ADMIN_LISTENADDRESS=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("ORDERER_ADMIN_LISTENADDRESS=")) | sub("ORDERER_ADMIN_LISTENADDRESS="; "")')
             ORDERER_ADMIN_ADDR="localhost:${ORDERER_ADMIN_LISTENADDRESS##*:}"
             ORDERER_TLS_CA=${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/tlsca/tlsca.${ORDERER_DOMAIN}-cert.pem
-            ORDERER_TLS_SIGN_CERT=${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_TLS_HOST}/tls/server.crt
-            ORDERER_TLS_PRIVATE_KEY=${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_TLS_HOST}/tls/server.key
-
+            ORDERER_TLS_SIGN_CERT=${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/users/Admin@${ORDERER_DOMAIN}/tls/client.crt
+            ORDERER_TLS_PRIVATE_KEY=${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/users/Admin@${ORDERER_DOMAIN}/tls/client.key
             # Find the orderer ID that matches the orderer's name
             ORD_KEY=$(jq -r "to_entries[] | select(.value.ordName == \"$ORDERER_NAME\") | .key" ${ORD_JSON_FILE})
             
@@ -183,10 +182,10 @@ generate_orderer() {
     ORDERER_TLS_PRIVATE_KEY=${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_TLS_HOST}/tls/server.key
 
     # Create the orderer file
-    ORDERER_FILE="${NETWORK_IDS_PATH}/${ORDERER_NAME}.json"
+    export ORD_ID_FILE="${NETWORK_IDS_PATH}/${ORDERER_NAME}.json"
     
     # Populate the file with information from the compose file
-    echo '{}' | jq \
+    echo "{}" | jq \
         --arg ordHost "$ORDERER_TLS_HOST" \
         --arg listenAddress "$ORDERER_ADDRESS" \
         --arg adminListenAddress "$ORDERER_ADMIN_ADDR" \
@@ -194,5 +193,5 @@ generate_orderer() {
         --arg tlsSignCert "$ORDERER_TLS_SIGN_CERT" \
         --arg tlsPrivateKey "$ORDERER_TLS_PRIVATE_KEY" \
         '{ordHost: $ordHost, listenAddress: $listenAddress, adminListenAddress: $adminListenAddress, tlsCa: $tlsCa, tlsSignCert: $tlsSignCert, tlsPrivateKey: $tlsPrivateKey}' \
-        > ${ORDERER_FILE}
+        > ${ORD_ID_FILE}
 }
