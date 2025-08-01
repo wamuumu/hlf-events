@@ -51,7 +51,7 @@ set_orderer() {
 }
 
 set_peer() {
-    local peer=$(jq -r ".\"$1\"" ${PEERS_JSON_FILE})
+    local peer=$(jq -r ".\"${DEFAULT_ORG}\".peers[\"$1\"]" ${ORG_JSON_FILE})
 
     PEER_NAME=$(echo "$peer" | jq -r '.peerName')
     PEER_DOMAIN=$(echo "$peer" | jq -r '.peerDomain')

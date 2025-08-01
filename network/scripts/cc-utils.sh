@@ -1,10 +1,7 @@
 #!/bin/bash
 
 . set-env.sh
-
-if [ ! -d "${NETWORK_LOG_PATH}/chaincode" ]; then
-    mkdir -p "${NETWORK_LOG_PATH}/chaincode"
-fi
+. network-utils.sh
 
 calculate_package_id() {
     export PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PKG_PATH})
@@ -30,25 +27,21 @@ resolveSequence() {
 }
 
 get_tls_identities() {
-    PEER_ADDRESSES=""
-    TLS_ROOT_CERT_FILES=""
+    local peer_addresses=""
+    local tls_root_cert_files=""
 
-    ORG_COUNT=$(jq -r 'length' ${ORG_JSON_FILE})
-    for ((i=1; i<=ORG_COUNT; i++)); do
+    local anchor_peers=$(fetch_anchor_peers)
 
-        local organization=$(jq -r ".\"$i\"" ${ORG_JSON_FILE})
-        local peers_count=$(echo "$organization" | jq -r '.peers | length')
+    while read -r entry; do
+        host=$(echo "$entry" | jq -r '.anchor_peer.host')
+        port=$(echo "$entry" | jq -r '.anchor_peer.port')
+        domain=$(echo "$host" | cut -d. -f2-)
 
-        # TODO: only one peer per organization is needed (use anchors)
-        for ((j=1; j<=peers_count; j++)); do
-            set_organization_peer $i $j >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
+        peer_addresses+="--peerAddresses localhost:${port} "
+        tls_root_cert_files+="--tlsRootCertFiles ${NETWORK_ORG_PATH}/peerOrganizations/${domain}/tlsca/tlsca.${domain}-cert.pem "
+    done < <(echo "$anchor_peers" | jq -c '.[]')
 
-            PEER_ADDRESSES+="--peerAddresses ${CORE_PEER_ADDRESS} "
-            TLS_ROOT_CERT_FILES+="--tlsRootCertFiles ${CORE_PEER_TLS_ROOTCERT_FILE} "
-        done
-    done
-
-    return "${PEER_ADDRESSES}${TLS_ROOT_CERT_FILES}"
+    echo "$peer_addresses $tls_root_cert_files"
 }
 
 check_commit_readiness() {
@@ -57,75 +50,48 @@ check_commit_readiness() {
         --name ${CC_NAME} \
         --version ${CC_VERSION} \
         --sequence ${CC_SEQUENCE} \
-        --output json \
-        >> ${NETWORK_LOG_PATH}/chaincode/readiness.log 2>&1
+        --output json
 }
 
-# TODO: add the peer lifecycle chaincode queryinstalled command to check if the chaincode is installed on the peer
-# TODO: add the peer lifecycle chaincode querycommitted command to check if the chaincode is committed on the channel
-
 install_chaincode() {
-    local ORG_ID=$1
-    if [ -z "$ORG_ID" ]; then
-        echo "Usage: $0 <organization_id>"
-        exit 1
-    fi
-
-    calculate_package_id
-
-    # TODO: run on every peer of the organization
-    PEER_COUNT=$(jq -r ".\"$ORG_ID\".peers | length" ${ORG_JSON_FILE})
-    for ((i=1; i<=PEER_COUNT; i++)); do    
-        set_organization_peer $1 $2 >> ${NETWORK_LOG_PATH}/chaincode/install.log 2>&1
-        peer lifecycle chaincode install ${CC_PKG_PATH} >> ${NETWORK_LOG_PATH}/chaincode/install.log 2>&1
-        echo "Chaincode installed on peer ${CORE_PEER_LOCALMSPID} (${CORE_PEER_ADDRESS})"
+    local peer_count=$(jq -r '. | length' ${PEERS_JSON_FILE})
+    for ((i=1; i<=peer_count; i++)); do
+        set_peer $i
+        peer lifecycle chaincode install ${CC_PKG_PATH}
+        if [ $? -ne 0 ]; then
+            echo "Failed to install chaincode on peer $i"
+            exit 1
+        fi
     done
-    echo "Chaincode ${PACKAGE_ID} installed on all peers of organization ${ORG_ID}"
 }
 
 approve_chaincode() {
-    local ORG_ID=$1
-    if [ -z "$ORG_ID" ]; then
-        echo "Usage: $0 <organization_id>"
-        exit 1
-    fi
-
-    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
-    set_organization_peer ${ORG_ID} ${ANCHOR_PEER} >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
-
-    resolveSequence
-
     peer lifecycle chaincode approveformyorg \
-        -o ${ORDERER_ADDR} \
+        -o ${ORDERER_ADDRESS} \
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         --tls \
-        --cafile ${ORDERER_ADMIN_TLS_CA} \
+        --cafile ${ORDERER_TLS_CA} \
         --channelID ${NETWORK_CHN_NAME} \
         --name ${CC_NAME} \
         --version ${CC_VERSION} \
-        --sequence ${CC_SEQUENCE} \
-        >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
-    echo "Chaincode approved for organization ${ORG_ID}"
+        --sequence ${CC_SEQUENCE}
+    echo "Chaincode approved for organization ${CORE_PEER_LOCALMSPID}."
 }
 
 commit_chaincode() {
     
-    TLS_IDENTITIES=$(get_tls_identities) #TODO: check if this works 
+    local tls_identities=$(get_tls_identities)
 
-    resolveSequence
-    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
     peer lifecycle chaincode commit \
-        -o ${ORDERER_ADDR} \
+        -o ${ORDERER_ADDRESS} \
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         --tls \
-        --cafile ${ORDERER_ADMIN_TLS_CA} \
+        --cafile ${ORDERER_TLS_CA} \
         --channelID ${NETWORK_CHN_NAME} \
         --name ${CC_NAME} \
         --version ${CC_VERSION} \
         --sequence ${CC_SEQUENCE} \
-        ${TLS_IDENTITIES} \
-        >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
-    echo "Chaincode committed successfully on all peers."  
+        ${tls_identities}
 }
 
 invoke_chaincode() {
