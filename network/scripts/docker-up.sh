@@ -1,16 +1,19 @@
 #!/bin/bash
 
-. ids-utils.sh
+. docker-utils.sh
 
-COMPOSE_FILE=${NETWORK_CMP_PATH}/docker-compose.yaml
-CRYPTO_CONFIG_FILE=${NETWORK_CFG_PATH}/crypto-config.yaml
+COMPOSE_FILE=$1
 
-# Create runtime directories
-mkdir -p ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH} ${NETWORK_LOG_PATH}
+# Check if the compose file is provided
+if [ -z "$COMPOSE_FILE" ]; then
+    echo "Usage: $0 <compose-file>"
+    exit 1
+fi
 
-# Create IDs files
-init_organizations ${CRYPTO_CONFIG_FILE}
-init_orderers ${CRYPTO_CONFIG_FILE}
-update_services ${COMPOSE_FILE}
+# Check if the compose file exists
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "Error: Compose file $COMPOSE_FILE does not exist."
+    exit 1
+fi
 
-docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} up -d
+up ${COMPOSE_FILE}

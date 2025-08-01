@@ -1,17 +1,7 @@
 #!/bin/bash
 
-. ../network.config
 . set-env.sh
 . update-config.sh
-
-export PATH=${PATH}:${FABRIC_BIN_PATH}
-export FABRIC_CFG_PATH=${FABRIC_CFG_PATH}
-
-export COMPOSE_BAKE=true
-export FABRIC_VERSION
-export DOCKER_PROJECT_NAME
-
-ORGANIZATIONS_JSON_FILE=${NETWORK_PROFILE_PATH}/organizations.json
 
 # Params definition
 ORG_ID=$1
@@ -28,7 +18,7 @@ function clear_organization_profile() {
 
 function leave_channel() {
 
-    echo "Removing organization ${ORG_NAME} from the channel ${NETWORK_CHANNEL_NAME}"
+    echo "Removing organization ${ORG_NAME} from the channel ${NETWORK_CHN_NAME}"
 
     fetch_channel_config 1
     # Remove the organization from the config
@@ -52,17 +42,17 @@ function leave_channel() {
     set_orderer 1
     peer channel update \
         -f ${OUTPUT} \
-        -c ${NETWORK_CHANNEL_NAME} \
+        -c ${NETWORK_CHN_NAME} \
         -o ${ORDERER_ADDR} \
         --ordererTLSHostnameOverride ${ORDERER_HOST} \
         --tls \
         --cafile ${ORDERER_ADMIN_TLS_CA}
 
     # Remove all the intermediary files
-    rm ${NETWORK_CHANNEL_PATH}/*.json
-    rm ${NETWORK_CHANNEL_PATH}/*.pb
+    rm ${NETWORK_CHN_PATH}/*.json
+    rm ${NETWORK_CHN_PATH}/*.pb
 
-    echo "Organization ${ORG_NAME} successfully removed from channel ${NETWORK_CHANNEL_NAME}"
+    echo "Organization ${ORG_NAME} successfully removed from channel ${NETWORK_CHN_NAME}"
 }
 
 function organization_down() {

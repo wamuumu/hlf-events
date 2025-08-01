@@ -17,6 +17,11 @@ elif [ -z "${CC_SRC_LANG}" ]; then
     echo "Error: No chaincode language was provided."
     exit 1
 
+# User has not provided a version
+elif [ -z "${CC_VERSION}" ]; then
+    echo "Error: No chaincode version was provided."
+    exit 1
+
 # Make sure that the src path to the chaincode exists
 elif [ ! -d "$CC_SRC_PATH" ]; then
     echo "Error: Path to chaincode does not exist. Please provide a different path."
@@ -33,12 +38,9 @@ else
     exit 1
 fi
 
-CC_VERSION=$(date +%Y%m%d%H%M%S)
-
-if [ -d "${NETWORK_PKG_PATH}" ]; then
-    rm -rf ${NETWORK_PKG_PATH}
+if [ ! -d "${NETWORK_PKG_PATH}" ]; then
+    mkdir -p ${NETWORK_PKG_PATH}
 fi
-mkdir -p ${NETWORK_PKG_PATH}
 
 echo "Chaincode name: ${CC_NAME}"
 echo "Chaincode path: ${CC_SRC_PATH}"

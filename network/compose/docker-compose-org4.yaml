@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# This is the new organization to be added to the Hyperledger Fabric network, which is not included in the original genesis block.
+
 volumes:
   peer0_org4_data:
   peer1_org4_data:
@@ -46,8 +48,9 @@ services:
     command: peer node start
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
-      - ../../config/core.yaml:/etc/hyperledger/fabric/core.yaml
-      - ../../organizations/peerOrganizations/org4.testbed.local/peers/peer0.org4.testbed.local/:/etc/hyperledger/fabric
+      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
+      - ../organizations/peerOrganizations/org4.testbed.local/peers/peer0.org4.testbed.local/msp:/etc/hyperledger/fabric/msp
+      - ../organizations/peerOrganizations/org4.testbed.local/peers/peer0.org4.testbed.local/tls:/etc/hyperledger/fabric/tls
       - peer0_org4_data:/var/hyperledger/production
     ports:
       - 10051:10051
@@ -89,8 +92,9 @@ services:
     command: peer node start
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
-      - ../../config/core.yaml:/etc/hyperledger/fabric/core.yaml
-      - ../../organizations/peerOrganizations/org4.testbed.local/peers/peer1.org4.testbed.local/:/etc/hyperledger/fabric
+      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
+      - ../organizations/peerOrganizations/org4.testbed.local/peers/peer1.org4.testbed.local/msp:/etc/hyperledger/fabric/msp
+      - ../organizations/peerOrganizations/org4.testbed.local/peers/peer1.org4.testbed.local/tls:/etc/hyperledger/fabric/tls
       - peer1_org4_data:/var/hyperledger/production
     ports:
       - 11051:11051

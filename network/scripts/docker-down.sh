@@ -1,18 +1,26 @@
 #!/bin/bash
 
-. set-env.sh
+. docker-utils.sh
 
-HARD=false
-if [[ "$1" == "--hard" ]]; then
-    HARD=true
+COMPOSE_FILE=$1
+
+# Check if the hard option is provided
+[[ "$2" == "--hard" ]] && HARD=true || HARD=false
+
+# Check if the compose file is provided
+if [ -z "$COMPOSE_FILE" ]; then
+    echo "Usage: $0 <compose-file>"
+    exit 1
 fi
 
-find ${NETWORK_CMP_PATH} -name "docker-compose*.yaml" -o -name "docker-compose*.yml" | while read -r compose_file; do
-    if [[ "$HARD" == true ]]; then
-        docker compose -f "$compose_file" -p ${DOCKER_PROJECT_NAME} down --volumes --remove-orphans
-        rm -rf ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH} ${NETWORK_LOG_PATH}
-    else
-        docker compose -f "$compose_file" -p ${DOCKER_PROJECT_NAME} down --remove-orphans
-    fi
-    docker volume prune -f
-done
+# Check if the compose file exists
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "Error: Compose file $COMPOSE_FILE does not exist."
+    exit 1
+fi
+
+# Down the specified compose file with the appropriate method
+[[ $HARD == true ]] && force_down ${COMPOSE_FILE} || down ${COMPOSE_FILE}
+
+# Prune the remaining resources
+prune
