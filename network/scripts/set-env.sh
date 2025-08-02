@@ -18,12 +18,16 @@ PEERS_JSON_FILE=${NETWORK_IDS_PATH}/peers.json
 
 # These are the files describing the initial state of the network in the genesis block
 CONFIGTX_FILE=${NETWORK_CFG_PATH}/configtx.yaml
-CRYPTO_CONFIG_FILE=${NETWORK_CFG_PATH}/crypto-config.yaml
-ORDERER_COMPOSE_FILES=(
+CRYPTO_CONFIG_FILES=(
+    ${NETWORK_CRP_PATH}/crypto-config-ord1.yaml
+    ${NETWORK_CRP_PATH}/crypto-config-ord2.yaml
+    ${NETWORK_CRP_PATH}/crypto-config-org1.yaml
+    ${NETWORK_CRP_PATH}/crypto-config-org2.yaml
+    ${NETWORK_CRP_PATH}/crypto-config-org3.yaml
+)
+COMPOSE_FILES=(
     "${NETWORK_CMP_PATH}/docker-compose-ord1.yaml"
     "${NETWORK_CMP_PATH}/docker-compose-ord2.yaml"
-)
-ORGANIZATION_COMPOSE_FILES=(
     "${NETWORK_CMP_PATH}/docker-compose-org1.yaml"
     "${NETWORK_CMP_PATH}/docker-compose-org2.yaml"
     "${NETWORK_CMP_PATH}/docker-compose-org3.yaml"

@@ -2,7 +2,7 @@
 
 . set-env.sh
 
-# For test only
+# ---- For test only ----
 for orderer in "${ORDERER_COMPOSE_FILES[@]}"; do
     ./docker-down.sh "${orderer}" --hard
 done
@@ -10,7 +10,25 @@ for organization in "${ORGANIZATION_COMPOSE_FILES[@]}"; do
     ./docker-down.sh "${organization}" --hard
 done
 
-./network-init.sh # As the admin organization only
+rm -rf ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
+mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
+
+# -----------------------
+
+# Setup the crypto material
+for i in "${!CRYPTO_CONFIG_FILES[@]}"; do
+    crypto_config_file="${CRYPTO_CONFIG_FILES[$i]}"
+    docker_compose_file="${COMPOSE_FILES[$i]}"
+    ./network-prep.sh "${crypto_config_file}" "${docker_compose_file}"
+done
+
+exit 0
+
+# NOTE: This needs to be done only once, when all the crypto material is generated and shared.
+# NOTE: Identities folder must exist and be populated with certificates.
+./network-init.sh
+
+exit 0
 
 # Docker setup
 for orderer in "${ORDERER_COMPOSE_FILES[@]}"; do
