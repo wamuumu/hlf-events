@@ -3,11 +3,8 @@
 . set-env.sh
 
 # ---- For test only ----
-for orderer in "${ORDERER_COMPOSE_FILES[@]}"; do
-    ./docker-down.sh "${orderer}" --hard
-done
-for organization in "${ORGANIZATION_COMPOSE_FILES[@]}"; do
-    ./docker-down.sh "${organization}" --hard
+for compose_file in "${COMPOSE_FILES[@]}"; do
+    ./docker-down.sh "${compose_file}" --hard
 done
 
 rm -rf ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
@@ -22,23 +19,20 @@ for i in "${!CRYPTO_CONFIG_FILES[@]}"; do
     ./network-prep.sh "${crypto_config_file}" "${docker_compose_file}"
 done
 
-exit 0
-
 # NOTE: This needs to be done only once, when all the crypto material is generated and shared.
 # NOTE: Identities folder must exist and be populated with certificates.
 ./network-init.sh
 
-exit 0
-
 # Docker setup
-for orderer in "${ORDERER_COMPOSE_FILES[@]}"; do
-    ./docker-up.sh "${orderer}" # Initialize the container for the orderer
+for compose_file in "${COMPOSE_FILES[@]}"; do
+    ./docker-up.sh "${compose_file}" # Initialize the containers
 done
-./docker-up.sh "${ORGANIZATION_COMPOSE_FILES[0]}" # Initialize the organization 1 container
 
 # Channel setup
+# TODO: fix this 
 ./network-join-orderer.sh 1
 ./network-join-orderer.sh 2
+exit 0
 ./network-join-organization.sh # Join the organization 1 to the network
 
 sleep 20

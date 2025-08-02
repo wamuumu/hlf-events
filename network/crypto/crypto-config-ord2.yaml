@@ -1,6 +1,6 @@
 OrdererOrgs:
   - Name: Ord2
-    Domain: ord2.testbed.local
+    Domain: ord.testbed.local
     EnableNodeOUs: true
     Specs:
       - Hostname: orderer2

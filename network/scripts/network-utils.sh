@@ -19,7 +19,14 @@ generate_genesis() {
 
 join_orderer() {
     local ord_id=$1
-    set_orderer ${ord_id}
+
+    local endpoints_file="${NETWORK_IDS_PATH}/ords/endpoints.json"
+    if [ ! -f "${endpoints_file}" ]; then
+        echo "Error: Endpoints file ${endpoints_file} does not exist."
+        exit 1
+    fi
+
+    set_orderer ${endpoints_file} ${ord_id}
     osnadmin channel join \
         --channelID ${NETWORK_CHN_NAME} \
         --config-block ${GENESIS_BLOCK} \
@@ -29,10 +36,10 @@ join_orderer() {
         --client-key ${ORDERER_TLS_PRIVATE_KEY}
     
     if [ $? -ne 0 ]; then
-        echo "Error: Failed to join orderer ${ORDERER_HOST} to channel '${NETWORK_CHN_NAME}'."
+        echo "Error: Failed to join orderer ${ORDERER_HOSTNAME} to channel '${NETWORK_CHN_NAME}'."
         exit 1
     else
-        echo "Orderer ${ORDERER_HOST} joined channel '${NETWORK_CHN_NAME}' successfully."
+        echo "Orderer ${ORDERER_HOSTNAME} joined channel '${NETWORK_CHN_NAME}' successfully."
     fi
 }
 

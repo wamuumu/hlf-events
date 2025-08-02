@@ -8,4 +8,4 @@ mkdir -p ${NETWORK_CHN_PATH}
 
 # Generate the genesis block
 # NOTE: Genesis block is created by the admin organization (Org1) and then shared with all other organizations.
-generate_genesis ${CONFIGTX_FILE}
+generate_genesis

@@ -34,21 +34,27 @@ COMPOSE_FILES=(
 )
 
 set_orderer() {
-    local orderer=$(jq -r ".\"$1\"" ${ORD_JSON_FILE})
+    local orderer=$(jq -r ".\"$2\"" $1)
 
-    ORDERER_NAME=$(echo "$orderer" | jq -r '.ordName')
-    ORDERER_DOMAIN=$(echo "$orderer" | jq -r '.ordDomain')
-    export ORDERER_HOST=$(echo "$orderer" | jq -r '.ordHost')
-    export ORDERER_ADDRESS=$(echo "$orderer" | jq -r '.listenAddress')
-    export ORDERER_ADMIN_ADDRESS=$(echo "$orderer" | jq -r '.adminListenAddress')
-    export ORDERER_TLS_CA="${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/tlsca/tlsca.${ORDERER_DOMAIN}-cert.pem"
-    export ORDERER_TLS_SIGN_CERT="${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_HOST}/tls/server.crt"
-    export ORDERER_TLS_PRIVATE_KEY="${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_HOST}/tls/server.key"
+    if [ -z "$orderer" ]; then
+        echo "Error: Orderer with ID '$2' not found in $1."
+        exit 1
+    fi
 
-    echo "Setting environment for ${ORDERER_NAME} (ID: $1):"
+    ORDERER_NAME=$(echo "$orderer" | jq -r '.hostname | split(".") | .[0]')
+    ORDERER_DOMAIN=$(echo "$orderer" | jq -r '.domain')
+    export ORDERER_HOSTNAME=$(echo "$orderer" | jq -r '.hostname')
+    export ORDERER_ADDRESS=$(echo "$orderer" | jq -r '.address')
+    export ORDERER_ADMIN_ADDRESS=$(echo "$orderer" | jq -r '.adminAddress')
+    export ORDERER_TLS_CA="${NETWORK_IDS_PATH}/ords/tlsca/tlsca.${ORDERER_DOMAIN}-cert.pem"
+    export ORDERER_TLS_SIGN_CERT="${NETWORK_IDS_PATH}/ords/orderers/${ORDERER_NAME}/tls/server.crt"
+
+    # NOTE: this is private and should not be in the shared identity folder
+    export ORDERER_TLS_PRIVATE_KEY="${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_HOSTNAME}/tls/server.key"
+
+    echo "Setting environment for ${ORDERER_HOSTNAME} (ID: $2):"
     echo "  Address: ${ORDERER_ADDRESS}"
     echo "  Admin Address: ${ORDERER_ADMIN_ADDRESS}"
-    echo "  TLS Host: ${ORDERER_HOST}"
     echo "  TLS CA: ${ORDERER_TLS_CA}"
     echo "  TLS Sign Cert: ${ORDERER_TLS_SIGN_CERT}"
     echo "  TLS Private Key: ${ORDERER_TLS_PRIVATE_KEY}"

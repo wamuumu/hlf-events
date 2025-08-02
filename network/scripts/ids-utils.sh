@@ -2,7 +2,7 @@
 
 . set-env.sh
 
-copy_msp_tls_certs() {
+copy_msp_folder() {
 
     # Copy the MSP and TLS certificates
     # Also initialize the endpoints.json file for the identity
@@ -23,14 +23,28 @@ copy_msp_tls_certs() {
 
     local name=$(echo "$data" | jq -r '.Name')
     local domain=$(echo "$data" | jq -r ".Domain")
+    local hostname=$(echo "$data" | jq -r '.Specs[0].Hostname')
 
     # Prepare whole directory and files
-    ORG_DIR="${NETWORK_IDS_PATH}/${name,,}"
-    mkdir -p "${ORG_DIR}/msp/cacerts" "${ORG_DIR}/msp/tlscacerts"
-    echo "{}" > "${ORG_DIR}/endpoints.json"
+    if [[ "$domain" == "ord.testbed.local" ]]; then
+        ORG_DIR="${NETWORK_IDS_PATH}/ords"
+    else
+        ORG_DIR="${NETWORK_IDS_PATH}/${name,,}"
+    fi
 
-    cp "${NETWORK_ORG_PATH}/${type}/${domain}/ca/ca.${domain}-cert.pem" "${ORG_DIR}/msp/cacerts/ca.${domain}-cert.pem"
-    cp "${NETWORK_ORG_PATH}/${type}/${domain}/tlsca/tlsca.${domain}-cert.pem" "${ORG_DIR}/msp/tlscacerts/tlsca.${domain}-cert.pem"
+    if [ ! -d "${ORG_DIR}" ]; then
+        mkdir -p "${ORG_DIR}/tlsca" "${ORG_DIR}/ca"
+        cp -r "${NETWORK_ORG_PATH}/${type}/${domain}/msp" "${ORG_DIR}/msp" 
+    fi
+
+    cp "${NETWORK_ORG_PATH}/${type}/${domain}/ca/ca.${domain}-cert.pem" "${ORG_DIR}/ca/ca.${domain}-cert.pem" 
+    cp "${NETWORK_ORG_PATH}/${type}/${domain}/tlsca/tlsca.${domain}-cert.pem" "${ORG_DIR}/tlsca/tlsca.${domain}-cert.pem"
+
+    if [[ "$domain" == "ord.testbed.local" ]]; then
+        mkdir -p "${ORG_DIR}/orderers/${hostname}/tls"
+        cp -r "${NETWORK_ORG_PATH}/${type}/${domain}/orderers/${hostname}.${domain}/msp" "${ORG_DIR}/orderers/${hostname}/msp"
+        cp "${NETWORK_ORG_PATH}/${type}/${domain}/orderers/${hostname}.${domain}/tls/server.crt" "${ORG_DIR}/orderers/${hostname}/tls/server.crt"
+    fi
 
     echo ${ORG_DIR}
 }
@@ -46,6 +60,10 @@ generate_endpoints() {
     while IFS= read -r service; do
 
         local json_file="${org_dir}/endpoints.json"
+        if [ ! -f "${json_file}" ]; then
+            echo "{}" > "${json_file}"
+        fi
+
         local service_id=$(($(jq 'keys | length' ${json_file}) + 1))
         local service_type=$(echo "$service" | jq -r '.value.image | split(":") | .[0] | split("/") | .[-1] | sub("fabric-"; "")') # This returns peer or orderer
         
@@ -65,6 +83,7 @@ generate_endpoints() {
         
         elif [[ "$service_type" == "orderer" ]]; then
             ORDERER_HOSTNAME=$(echo "$service" | jq -r '.key')
+            ORDERER_DOMAIN=$(echo "$ORDERER_HOSTNAME" | cut -d'.' -f2-)
             ORDERER_GENERAL_LISTEN_PORT=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("ORDERER_GENERAL_LISTENPORT=")) | sub("ORDERER_GENERAL_LISTENPORT="; "")')
             ORDERER_LISTEN_ADDRESS="${DEFAULT_ENDPOINT}:${ORDERER_GENERAL_LISTEN_PORT}"
             ORDERER_ADMIN_LISTEN_PORT=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("ORDERER_ADMIN_LISTENADDRESS=")) | sub("ORDERER_ADMIN_LISTENADDRESS="; "") | split(":") | .[-1]')
@@ -73,9 +92,10 @@ generate_endpoints() {
             jq \
                 --arg ordId "$service_id" \
                 --arg ordHost "$ORDERER_HOSTNAME" \
+                --arg ordDomain "$ORDERER_DOMAIN" \
                 --arg listenAddress "$ORDERER_LISTEN_ADDRESS" \
                 --arg adminListenAddress "$ORDERER_ADMIN_LISTEN_ADDRESS" \
-                '.[$ordId] = {hostname: $ordHost, address: $listenAddress, adminAddress: $adminListenAddress}' \
+                '.[$ordId] = {hostname: $ordHost, domain: $ordDomain, address: $listenAddress, adminAddress: $adminListenAddress}' \
                 "${json_file}" > "${json_file}.tmp" && mv "${json_file}.tmp" "${json_file}"
         fi
     done <<< "$services"

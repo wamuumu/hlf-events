@@ -37,7 +37,7 @@ fi
 generate_crypto ${CRYPTO_CONFIG_FILE}
 
 # Copy the CA and TLS certificates
-ORG_DIR=$(copy_msp_tls_certs ${CRYPTO_CONFIG_FILE})
+ORG_DIR=$(copy_msp_folder ${CRYPTO_CONFIG_FILE})
 
 # Generate the endpoints definition
 generate_endpoints ${ORG_DIR} ${DOCKER_COMPOSE_FILE}

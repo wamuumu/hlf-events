@@ -2,7 +2,7 @@ Organizations:
   - &OrdererOrg
     Name: OrdererMSP
     ID: OrdererMSP
-    MSPDir: ../organizations/ordererOrganizations/ord.testbed.local/msp
+    MSPDir: ../identities/ords/msp
     Policies:
       Readers:
         Type: Signature
@@ -21,7 +21,7 @@ Organizations:
   - &Org1
     Name: Org1MSP
     ID: Org1MSP
-    MSPDir: ../organizations/peerOrganizations/org1.testbed.local/msp
+    MSPDir: ../identities/org1/msp
     Policies:
       Readers:
         Type: Signature
@@ -42,7 +42,7 @@ Organizations:
   - &Org2
     Name: Org2MSP
     ID: Org2MSP
-    MSPDir: ../organizations/peerOrganizations/org2.testbed.local/msp
+    MSPDir: ../identities/org2/msp
     Policies:
       Readers:
         Type: Signature
@@ -63,7 +63,7 @@ Organizations:
   - &Org3
     Name: Org3MSP
     ID: Org3MSP
-    MSPDir: ../organizations/peerOrganizations/org3.testbed.local/msp
+    MSPDir: ../identities/org3/msp
     Policies:
       Readers:
         Type: Signature
@@ -168,12 +168,12 @@ Profiles:
         Consenters:
           - Host: orderer1.ord.testbed.local
             Port: 7050
-            ClientTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
-            ServerTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/server.crt
+            ClientTLSCert: ../identities/ords/orderers/orderer1/tls/server.crt
+            ServerTLSCert: ../identities/ords/orderers/orderer1/tls/server.crt
           - Host: orderer2.ord.testbed.local
             Port: 8050
-            ClientTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
-            ServerTLSCert: ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer2.ord.testbed.local/tls/server.crt
+            ClientTLSCert: ../identities/ords/orderers/orderer2/tls/server.crt
+            ServerTLSCert: ../identities/ords/orderers/orderer2/tls/server.crt
       Organizations:
         - *OrdererOrg
       Capabilities: *OrdererCapabilities
