@@ -25,7 +25,7 @@ copy_msp_folder() {
     local domain=$(echo "$data" | jq -r ".Domain")
     local hostname=$(echo "$data" | jq -r '.Specs[0].Hostname')
 
-    ORG_DIR="${NETWORK_IDS_PATH}/${domain,,}"
+    ORG_DIR="${NETWORK_IDS_PATH}/${type}/${domain,,}"
     mkdir -p "${ORG_DIR}"
 
     # Copy the MSP folder containting TLS and CA certificates
@@ -100,12 +100,16 @@ verify_identity() {
     # Verify the identity of the caller by checking its private keys against the public certificates
 
     local org_domain=$1
+    
     local admin_private_key="${NETWORK_ORG_PATH}/peerOrganizations/${org_domain}/users/Admin@${org_domain}/msp/keystore/priv_sk"
-    # OR for ordererOrganizations
     if [ ! -f "${admin_private_key}" ]; then
         admin_private_key="${NETWORK_ORG_PATH}/ordererOrganizations/${org_domain}/users/Admin@${org_domain}/msp/keystore/priv_sk"
     fi
-    local admin_public_cert="${NETWORK_IDS_PATH}/${org_domain}/msp/admincerts/admin-cert.pem"
+    
+    local admin_public_cert="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/msp/admincerts/admin-cert.pem"
+    if [ ! -f "${admin_public_cert}" ]; then
+        admin_public_cert="${NETWORK_IDS_PATH}/ordererOrganizations/${org_domain}/msp/admincerts/admin-cert.pem"
+    fi
     
     if [ ! -f "${admin_public_cert}" ]; then
         echo "Error: Admin certificate for ${org_domain} not found."
@@ -127,4 +131,14 @@ verify_identity() {
         echo "Error: unable to verify identity. Certificates mismatch."
         exit 1
     fi
+}
+
+get_tls_identities() {
+    for organization in $(ls -d ${NETWORK_IDS_PATH}/peerOrganizations/*/); do
+        local domain=$(basename "${organization}")
+        local peer_address=$(jq -r '.[].address' "${organization}/endpoints.json" | head -n 1)
+        local tls_root_cert_file=${organization}msp/tlscacerts/tlsca.${domain}-cert.pem
+
+        echo "--peerAddresses ${peer_address} --tlsRootCertFiles ${tls_root_cert_file}"
+    done
 }

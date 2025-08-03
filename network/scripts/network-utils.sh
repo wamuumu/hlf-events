@@ -39,7 +39,7 @@ join_orderer() {
 join_organization() {
 
     local org_domain=$1
-    local endpoints_file="${NETWORK_IDS_PATH}/${org_domain}/endpoints.json"
+    local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
     local peers_count=$(jq -r "keys | length" ${endpoints_file})
 
     for ((i=1; i<=peers_count; i++)); do
@@ -53,34 +53,6 @@ join_organization() {
             echo "Peer ${CORE_PEER_ADDRESS} joined channel '${NETWORK_CHN_NAME}' successfully."
         fi
     done
-}
-
-fetch_anchor_peers() {
-
-    # Fetch the latest channel configuration block
-    peer channel fetch config ${NETWORK_CHN_PATH}/config_block.pb \
-        -o ${ORDERER_ADDRESS} \
-        --ordererTLSHostnameOverride ${ORDERER_HOST} \
-        -c ${NETWORK_CHN_NAME} \
-        --tls --cafile ${ORDERER_TLS_CA}
-    
-    # Convert Proto to JSON
-    configtxlator proto_decode \
-        --input ${NETWORK_CHN_PATH}/config_block.pb \
-        --type common.Block \
-        --output ${NETWORK_CHN_PATH}/config_block.json
-
-    jq .data.data[0].payload.data.config ${NETWORK_CHN_PATH}/config_block.json > ${NETWORK_CHN_PATH}/config.json
-
-    # Extract the anchor peers for the organization
-    jq '.channel_group.groups.Application.groups 
-        | to_entries 
-        | map({ org: .key, anchor_peers: .value.values["AnchorPeers"].value.anchor_peers }) 
-        | map(select(.anchor_peers != null)) 
-        | map({ org: .org, anchor_peer: .anchor_peers[0] })' ${NETWORK_CHN_PATH}/config.json
-    
-    rm ${NETWORK_CHN_PATH}/*.json
-    rm ${NETWORK_CHN_PATH}/*.pb
 }
 
 # join_organization() {

@@ -36,7 +36,7 @@ COMPOSE_FILES=(
 set_orderer() {
     local orderer_hostname=$1
     local ord_domain=$(echo "$orderer_hostname" | cut -d'.' -f2-)
-    local endpoints_file="${NETWORK_IDS_PATH}/${ord_domain}/endpoints.json"
+    local endpoints_file="${NETWORK_IDS_PATH}/ordererOrganizations/${ord_domain}/endpoints.json"
     
     if [ ! -f "${endpoints_file}" ]; then
         echo "Error: Endpoints file ${endpoints_file} does not exist."
@@ -56,8 +56,8 @@ set_orderer() {
     export ORDERER_ADMIN_ADDRESS=$(echo "$orderer" | jq -r '.adminAddress')
 
     # NOTE: these can be get from both organizations and identities folders, since they are public
-    export ORDERER_TLS_CA="${NETWORK_IDS_PATH}/${ORDERER_DOMAIN}/msp/tlscacerts/tlsca.${ORDERER_DOMAIN}-cert.pem"
-    export ORDERER_TLS_SIGN_CERT="${NETWORK_IDS_PATH}/${ORDERER_DOMAIN}/tls/server.crt"
+    export ORDERER_TLS_CA="${NETWORK_IDS_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/msp/tlscacerts/tlsca.${ORDERER_DOMAIN}-cert.pem"
+    export ORDERER_TLS_SIGN_CERT="${NETWORK_IDS_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/tls/server.crt"
 
     # NOTE: this is private and should not be in the shared identity folder
     export ORDERER_TLS_PRIVATE_KEY="${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_HOSTNAME}/tls/server.key"
@@ -73,7 +73,7 @@ set_orderer() {
 set_peer() {
     local org_domain=$1
     local peer_id=$2
-    local endpoints_file="${NETWORK_IDS_PATH}/${org_domain}/endpoints.json"
+    local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
 
     if [ ! -f "${endpoints_file}" ]; then
         echo "Error: Endpoints file ${endpoints_file} does not exist."
@@ -94,7 +94,7 @@ set_peer() {
     export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.address')
     
     # NOTE: this can be get from both organizations and identities folders, since it is public
-    export CORE_PEER_TLS_ROOTCERT_FILE="${NETWORK_IDS_PATH}/${PEER_DOMAIN}/msp/tlscacerts/tlsca.${PEER_DOMAIN}-cert.pem"
+    export CORE_PEER_TLS_ROOTCERT_FILE="${NETWORK_IDS_PATH}/peerOrganizations/${PEER_DOMAIN}/msp/tlscacerts/tlsca.${PEER_DOMAIN}-cert.pem"
     
     # NOTE: this is private and should not be in the shared identity folder
     export CORE_PEER_MSPCONFIGPATH="${NETWORK_ORG_PATH}/peerOrganizations/${PEER_DOMAIN}/users/Admin@${PEER_DOMAIN}/msp"

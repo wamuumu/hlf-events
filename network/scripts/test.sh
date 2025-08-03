@@ -46,7 +46,5 @@ done
 ./chaincode-approve.sh "org2.testbed.local" # TODO: set variable as environment variable
 ./chaincode-approve.sh "org3.testbed.local" # TODO: set variable as environment variable
 
-exit 0
-
 # Commit the chaincode definition to the channel (only once)
 ./chaincode-commit.sh "org1.testbed.local"  # TODO: set variable as environment variable

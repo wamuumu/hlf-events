@@ -1,7 +1,6 @@
 #!/bin/bash
 
-. set-env.sh
-. network-utils.sh
+. ids-utils.sh
 
 calculate_package_id() {
     export PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PKG_PATH})
@@ -26,24 +25,6 @@ resolveSequence() {
     echo "Resolved chaincode sequence: ${CC_SEQUENCE}"
 }
 
-get_tls_identities() {
-    local peer_addresses=""
-    local tls_root_cert_files=""
-
-    local anchor_peers=$(fetch_anchor_peers)
-
-    while read -r entry; do
-        host=$(echo "$entry" | jq -r '.anchor_peer.host')
-        port=$(echo "$entry" | jq -r '.anchor_peer.port')
-        domain=$(echo "$host" | cut -d. -f2-)
-
-        peer_addresses+="--peerAddresses localhost:${port} "
-        tls_root_cert_files+="--tlsRootCertFiles ${NETWORK_ORG_PATH}/peerOrganizations/${domain}/tlsca/tlsca.${domain}-cert.pem "
-    done < <(echo "$anchor_peers" | jq -c '.[]')
-
-    echo "$peer_addresses $tls_root_cert_files"
-}
-
 check_commit_readiness() {
     peer lifecycle chaincode checkcommitreadiness \
         --channelID ${NETWORK_CHN_NAME} \
@@ -56,7 +37,7 @@ check_commit_readiness() {
 install_chaincode() {
 
     local org_domain=$1
-    local endpoints_file="${NETWORK_IDS_PATH}/${org_domain}/endpoints.json"
+    local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
     local peers_count=$(jq -r "keys | length" ${endpoints_file})
 
     for ((i=1; i<=peers_count; i++)); do
@@ -88,7 +69,7 @@ commit_chaincode() {
 
     peer lifecycle chaincode commit \
         -o ${ORDERER_ADDRESS} \
-        --ordererTLSHostnameOverride ${ORDERER_HOST} \
+        --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
         --tls \
         --cafile ${ORDERER_TLS_CA} \
         --channelID ${NETWORK_CHN_NAME} \

@@ -2,7 +2,7 @@ Organizations:
   - &Ord1
     Name: Ord1
     ID: Ord1MSP
-    MSPDir: ../identities/ord1.testbed.local/msp
+    MSPDir: ../identities/ordererOrganizations/ord1.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -19,7 +19,7 @@ Organizations:
   - &Ord2
     Name: Ord2
     ID: Ord2MSP
-    MSPDir: ../identities/ord2.testbed.local/msp
+    MSPDir: ../identities/ordererOrganizations/ord2.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -36,7 +36,7 @@ Organizations:
   - &Org1
     Name: Org1
     ID: Org1MSP
-    MSPDir: ../identities/org1.testbed.local/msp
+    MSPDir: ../identities/peerOrganizations/org1.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -57,7 +57,7 @@ Organizations:
   - &Org2
     Name: Org2
     ID: Org2MSP
-    MSPDir: ../identities/org2.testbed.local/msp
+    MSPDir: ../identities/peerOrganizations/org2.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -78,7 +78,7 @@ Organizations:
   - &Org3
     Name: Org3
     ID: Org3MSP
-    MSPDir: ../identities/org3.testbed.local/msp
+    MSPDir: ../identities/peerOrganizations/org3.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -183,12 +183,12 @@ Profiles:
         Consenters:
           - Host: orderer.ord1.testbed.local
             Port: 7050
-            ClientTLSCert: ../identities/ord1.testbed.local/tls/server.crt
-            ServerTLSCert: ../identities/ord1.testbed.local/tls/server.crt
+            ClientTLSCert: ../identities/ordererOrganizations/ord1.testbed.local/tls/server.crt
+            ServerTLSCert: ../identities/ordererOrganizations/ord1.testbed.local/tls/server.crt
           - Host: orderer.ord2.testbed.local
             Port: 8050
-            ClientTLSCert: ../identities/ord2.testbed.local/tls/server.crt
-            ServerTLSCert: ../identities/ord2.testbed.local/tls/server.crt
+            ClientTLSCert: ../identities/ordererOrganizations/ord2.testbed.local/tls/server.crt
+            ServerTLSCert: ../identities/ordererOrganizations/ord2.testbed.local/tls/server.crt
       Organizations:
         - *Ord1
         - *Ord2
