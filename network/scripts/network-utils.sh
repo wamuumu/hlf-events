@@ -38,6 +38,10 @@ join_orderer() {
 
 join_organization() {
 
+    # TODO: check if the organization is already in the config block. 
+    # If it is, then join the peers to channel directly.
+    # If not, proceed with the steps to add a new organization to the block.
+
     local org_domain=$1
     local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
     local peers_count=$(jq -r "keys | length" ${endpoints_file})
