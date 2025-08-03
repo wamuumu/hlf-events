@@ -6,8 +6,8 @@ networks:
     name: fabric_net
 
 services:
-  orderer1.ord.testbed.local:
-    container_name: orderer1.ord.testbed.local
+  orderer1.ord1.testbed.local:
+    container_name: orderer1.ord1.testbed.local
     image: hyperledger/fabric-orderer:${FABRIC_VERSION}
     labels:
       service: hyperledger-fabric
@@ -39,8 +39,8 @@ services:
     working_dir: /root
     command: orderer
     volumes:
-      - ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/msp/:/var/hyperledger/orderer/msp
-      - ../organizations/ordererOrganizations/ord.testbed.local/orderers/orderer1.ord.testbed.local/tls/:/var/hyperledger/orderer/tls
+      - ../organizations/ordererOrganizations/ord1.testbed.local/orderers/orderer1.ord1.testbed.local/msp/:/var/hyperledger/orderer/msp
+      - ../organizations/ordererOrganizations/ord1.testbed.local/orderers/orderer1.ord1.testbed.local/tls/:/var/hyperledger/orderer/tls
       - orderer1_data:/var/hyperledger/production/orderer
     ports:
       - 7050:7050

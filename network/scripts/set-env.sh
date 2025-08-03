@@ -34,25 +34,26 @@ COMPOSE_FILES=(
 )
 
 set_orderer() {
-    local orderer=$(jq -r ".\"$2\"" $1)
+    local endpoints_file=$1
+    local orderer_hostname=$2
+    local orderer=$(jq -r "map(select(.hostname == \"$orderer_hostname\")) | .[0]" "$endpoints_file")
 
     if [ -z "$orderer" ]; then
-        echo "Error: Orderer with ID '$2' not found in $1."
+        echo "Error: Orderer with hostname '$2' not found in $1."
         exit 1
     fi
 
-    ORDERER_NAME=$(echo "$orderer" | jq -r '.hostname | split(".") | .[0]')
     ORDERER_DOMAIN=$(echo "$orderer" | jq -r '.domain')
     export ORDERER_HOSTNAME=$(echo "$orderer" | jq -r '.hostname')
     export ORDERER_ADDRESS=$(echo "$orderer" | jq -r '.address')
     export ORDERER_ADMIN_ADDRESS=$(echo "$orderer" | jq -r '.adminAddress')
-    export ORDERER_TLS_CA="${NETWORK_IDS_PATH}/ords/tlsca/tlsca.${ORDERER_DOMAIN}-cert.pem"
-    export ORDERER_TLS_SIGN_CERT="${NETWORK_IDS_PATH}/ords/orderers/${ORDERER_NAME}/tls/server.crt"
+    export ORDERER_TLS_CA="${NETWORK_IDS_PATH}/${ORDERER_DOMAIN}/msp/tlscacerts/tlsca.${ORDERER_DOMAIN}-cert.pem"
+    export ORDERER_TLS_SIGN_CERT="${NETWORK_IDS_PATH}/${ORDERER_DOMAIN}/tls/server.crt"
 
     # NOTE: this is private and should not be in the shared identity folder
     export ORDERER_TLS_PRIVATE_KEY="${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_HOSTNAME}/tls/server.key"
 
-    echo "Setting environment for ${ORDERER_HOSTNAME} (ID: $2):"
+    echo "Setting environment for ${ORDERER_HOSTNAME}:"
     echo "  Address: ${ORDERER_ADDRESS}"
     echo "  Admin Address: ${ORDERER_ADMIN_ADDRESS}"
     echo "  TLS CA: ${ORDERER_TLS_CA}"
@@ -61,17 +62,26 @@ set_orderer() {
 }
 
 set_peer() {
-    local peer=$(jq -r ".\"${DEFAULT_ORG}\".peers[\"$1\"]" ${ORG_JSON_FILE})
+    local endpoints_file=$1
+    local peer_id=$2
+    local peer=$(jq -r --arg id "$peer_id" '.[$id]' "$endpoints_file")
 
-    PEER_NAME=$(echo "$peer" | jq -r '.peerName')
-    PEER_DOMAIN=$(echo "$peer" | jq -r '.peerDomain')
+    if [ -z "$peer" ]; then
+        echo "Error: Peer with ID '$peer_id' not found in $endpoints_file."
+        exit 1
+    fi
+
+    PEER_HOSTNAME=$(echo "$peer" | jq -r '.hostname')
+    PEER_DOMAIN=$(echo "$PEER_HOSTNAME" | cut -d'.' -f2-)
     export CORE_PEER_TLS_ENABLED=true
     export CORE_PEER_LOCALMSPID=$(echo "$peer" | jq -r '.localMspId')
-    export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.listenAddress')
-    export CORE_PEER_TLS_ROOTCERT_FILE="${NETWORK_ORG_PATH}/peerOrganizations/${PEER_DOMAIN}/tlsca/tlsca.${PEER_DOMAIN}-cert.pem"
+    export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.address')
+    export CORE_PEER_TLS_ROOTCERT_FILE="${NETWORK_IDS_PATH}/${PEER_DOMAIN}/msp/tlscacerts/tlsca.${PEER_DOMAIN}-cert.pem"
+    
+    # NOTE: this is private and should not be in the shared identity folder
     export CORE_PEER_MSPCONFIGPATH="${NETWORK_ORG_PATH}/peerOrganizations/${PEER_DOMAIN}/users/Admin@${PEER_DOMAIN}/msp"
 
-    echo "Setting environment for ${PEER_NAME} (ID: $1):"
+    echo "Setting environment for ${PEER_HOSTNAME} (ID: $2):"
     echo "  Address: ${CORE_PEER_ADDRESS}"
     echo "  Local MSP ID: ${CORE_PEER_LOCALMSPID}"
     echo "  TLS Root Cert: ${CORE_PEER_TLS_ROOTCERT_FILE}"

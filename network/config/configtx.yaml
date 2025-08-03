@@ -1,27 +1,42 @@
 Organizations:
-  - &OrdererOrg
-    Name: OrdererMSP
-    ID: OrdererMSP
-    MSPDir: ../identities/ords/msp
+  - &Ord1
+    Name: Ord1MSP
+    ID: Ord1MSP
+    MSPDir: ../identities/ord1.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
-        Rule: "OR('OrdererMSP.member')" #member matches any user of the organization
+        Rule: "OR('Ord1MSP.member')" #member matches any user of the organization
       Writers:
         Type: Signature
-        Rule: "OR('OrdererMSP.member')"
+        Rule: "OR('Ord1MSP.member')"
       Admins:
         Type: Signature
-        Rule: "OR('OrdererMSP.admin')"
+        Rule: "OR('Ord1MSP.admin')"
     OrdererEndpoints:
-      - orderer1.ord.testbed.local:7050
-      - orderer2.ord.testbed.local:8050   #must be properly assigned through DNS (In docker compose through container name)
-      #- orderer3.testbed.local:7050      #what happens if i add this without having its crypto material?
+      - orderer1.ord1.testbed.local:7050
+  
+  - &Ord2
+    Name: Ord2MSP
+    ID: Ord2MSP
+    MSPDir: ../identities/ord2.testbed.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Ord2MSP.member')" #member matches any user of the organization
+      Writers:
+        Type: Signature
+        Rule: "OR('Ord2MSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Ord2MSP.admin')"
+    OrdererEndpoints:
+      - orderer2.ord2.testbed.local:8050
   
   - &Org1
     Name: Org1MSP
     ID: Org1MSP
-    MSPDir: ../identities/org1/msp
+    MSPDir: ../identities/org1.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -42,7 +57,7 @@ Organizations:
   - &Org2
     Name: Org2MSP
     ID: Org2MSP
-    MSPDir: ../identities/org2/msp
+    MSPDir: ../identities/org2.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -63,7 +78,7 @@ Organizations:
   - &Org3
     Name: Org3MSP
     ID: Org3MSP
-    MSPDir: ../identities/org3/msp
+    MSPDir: ../identities/org3.testbed.local/msp
     Policies:
       Readers:
         Type: Signature
@@ -118,8 +133,8 @@ Orderer: &OrdererDefaults
   OrdererType: etcdraft
   
   Addresses:
-    - orderer1.ord.testbed.local:7050
-    - orderer2.ord.testbed.local:8050
+    - orderer1.ord1.testbed.local:7050
+    - orderer2.ord2.testbed.local:8050
 
   # Batch configuration: settings for batch time and size
   BatchTimeout: 2s
@@ -166,16 +181,17 @@ Profiles:
       <<: *OrdererDefaults
       EtcdRaft:
         Consenters:
-          - Host: orderer1.ord.testbed.local
+          - Host: orderer1.ord1.testbed.local
             Port: 7050
-            ClientTLSCert: ../identities/ords/orderers/orderer1/tls/server.crt
-            ServerTLSCert: ../identities/ords/orderers/orderer1/tls/server.crt
-          - Host: orderer2.ord.testbed.local
+            ClientTLSCert: ../identities/ord1.testbed.local/tls/server.crt
+            ServerTLSCert: ../identities/ord1.testbed.local/tls/server.crt
+          - Host: orderer2.ord2.testbed.local
             Port: 8050
-            ClientTLSCert: ../identities/ords/orderers/orderer2/tls/server.crt
-            ServerTLSCert: ../identities/ords/orderers/orderer2/tls/server.crt
+            ClientTLSCert: ../identities/ord2.testbed.local/tls/server.crt
+            ServerTLSCert: ../identities/ord2.testbed.local/tls/server.crt
       Organizations:
-        - *OrdererOrg
+        - *Ord1
+        - *Ord2
       Capabilities: *OrdererCapabilities
     Application:
       <<: *ApplicationDefaults

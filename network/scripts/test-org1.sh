@@ -29,11 +29,11 @@ for compose_file in "${COMPOSE_FILES[@]}"; do
 done
 
 # Channel setup
-# TODO: fix this 
-./network-join-orderer.sh 1
-./network-join-orderer.sh 2
+./network-join-orderer.sh "orderer1.ord1.testbed.local" # TODO: set variable as environment variable
+./network-join-orderer.sh "orderer2.ord2.testbed.local" # TODO: set variable as environment variable
+./network-join-organization.sh "org1.testbed.local"     # TODO: set variable as environment variable
+
 exit 0
-./network-join-organization.sh # Join the organization 1 to the network
 
 sleep 20
 

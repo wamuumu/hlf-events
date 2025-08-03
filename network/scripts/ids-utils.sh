@@ -25,25 +25,19 @@ copy_msp_folder() {
     local domain=$(echo "$data" | jq -r ".Domain")
     local hostname=$(echo "$data" | jq -r '.Specs[0].Hostname')
 
-    # Prepare whole directory and files
-    if [[ "$domain" == "ord.testbed.local" ]]; then
-        ORG_DIR="${NETWORK_IDS_PATH}/ords"
-    else
-        ORG_DIR="${NETWORK_IDS_PATH}/${name,,}"
-    fi
+    ORG_DIR="${NETWORK_IDS_PATH}/${domain,,}"
+    mkdir -p "${ORG_DIR}"
 
-    if [ ! -d "${ORG_DIR}" ]; then
-        mkdir -p "${ORG_DIR}/tlsca" "${ORG_DIR}/ca"
-        cp -r "${NETWORK_ORG_PATH}/${type}/${domain}/msp" "${ORG_DIR}/msp" 
-    fi
+    # Copy the MSP folder containting TLS and CA certificates
+    cp -rf "${NETWORK_ORG_PATH}/${type}/${domain}/msp" "${ORG_DIR}/msp"
 
-    cp "${NETWORK_ORG_PATH}/${type}/${domain}/ca/ca.${domain}-cert.pem" "${ORG_DIR}/ca/ca.${domain}-cert.pem" 
-    cp "${NETWORK_ORG_PATH}/${type}/${domain}/tlsca/tlsca.${domain}-cert.pem" "${ORG_DIR}/tlsca/tlsca.${domain}-cert.pem"
+    # Copy the admin certificate into MSP folder
+    cp "${NETWORK_ORG_PATH}/${type}/${domain}/users/Admin@${domain}/msp/signcerts/Admin@${domain}-cert.pem" "${ORG_DIR}/msp/admincerts/admin-cert.pem"
 
-    if [[ "$domain" == "ord.testbed.local" ]]; then
-        mkdir -p "${ORG_DIR}/orderers/${hostname}/tls"
-        cp -r "${NETWORK_ORG_PATH}/${type}/${domain}/orderers/${hostname}.${domain}/msp" "${ORG_DIR}/orderers/${hostname}/msp"
-        cp "${NETWORK_ORG_PATH}/${type}/${domain}/orderers/${hostname}.${domain}/tls/server.crt" "${ORG_DIR}/orderers/${hostname}/tls/server.crt"
+    if [[ "$type" == "ordererOrganizations" ]]; then
+        # Copy the orderer TLS server certificate
+        mkdir -p "${ORG_DIR}/tls"
+        cp "${NETWORK_ORG_PATH}/${type}/${domain}/orderers/${hostname}.${domain}/tls/server.crt" "${ORG_DIR}/tls/server.crt"
     fi
 
     echo ${ORG_DIR}
@@ -99,4 +93,38 @@ generate_endpoints() {
                 "${json_file}" > "${json_file}.tmp" && mv "${json_file}.tmp" "${json_file}"
         fi
     done <<< "$services"
+}
+
+verify_identity() {
+
+    # Verify the identity of the caller by checking its private keys against the public certificates
+
+    local org_domain=$1
+    local admin_private_key="${NETWORK_ORG_PATH}/peerOrganizations/${org_domain}/users/Admin@${org_domain}/msp/keystore/priv_sk"
+    # OR for ordererOrganizations
+    if [ ! -f "${admin_private_key}" ]; then
+        admin_private_key="${NETWORK_ORG_PATH}/ordererOrganizations/${org_domain}/users/Admin@${org_domain}/msp/keystore/priv_sk"
+    fi
+    local admin_public_cert="${NETWORK_IDS_PATH}/${org_domain}/msp/admincerts/admin-cert.pem"
+    
+    if [ ! -f "${admin_public_cert}" ]; then
+        echo "Error: Admin certificate for ${org_domain} not found."
+        exit 1
+    fi
+
+    if [ ! -f "${admin_private_key}" ]; then
+        echo "Error: Admin private key for ${org_domain} not found."
+        exit 1
+    fi
+
+    # Create the challenge and signature
+    CHALLENGE=$(openssl rand -hex 32)
+    SIGNATURE=$(echo -n "$CHALLENGE" | openssl dgst -sha256 -sign "${admin_private_key}" | base64)
+
+    openssl x509 -in "${admin_public_cert}" -pubkey -noout | openssl dgst -sha256 -verify /dev/stdin -signature <(echo "$SIGNATURE" | base64 -d) <(echo -n "$CHALLENGE")
+
+    if [[ $? -ne 0 ]]; then
+        echo "Error: unable to verify identity. Certificates mismatch."
+        exit 1
+    fi
 }

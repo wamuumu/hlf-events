@@ -4,7 +4,7 @@
 
 up() {
     local COMPOSE_FILE=$1
-    docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} up -d --no-recreate
+    docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} up -d
 }
 
 down() {
