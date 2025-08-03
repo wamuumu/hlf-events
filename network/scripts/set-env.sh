@@ -34,8 +34,15 @@ COMPOSE_FILES=(
 )
 
 set_orderer() {
-    local endpoints_file=$1
-    local orderer_hostname=$2
+    local orderer_hostname=$1
+    local ord_domain=$(echo "$orderer_hostname" | cut -d'.' -f2-)
+    local endpoints_file="${NETWORK_IDS_PATH}/${ord_domain}/endpoints.json"
+    
+    if [ ! -f "${endpoints_file}" ]; then
+        echo "Error: Endpoints file ${endpoints_file} does not exist."
+        exit 1
+    fi
+
     local orderer=$(jq -r "map(select(.hostname == \"$orderer_hostname\")) | .[0]" "$endpoints_file")
 
     if [ -z "$orderer" ]; then
@@ -47,6 +54,8 @@ set_orderer() {
     export ORDERER_HOSTNAME=$(echo "$orderer" | jq -r '.hostname')
     export ORDERER_ADDRESS=$(echo "$orderer" | jq -r '.address')
     export ORDERER_ADMIN_ADDRESS=$(echo "$orderer" | jq -r '.adminAddress')
+
+    # NOTE: these can be get from both organizations and identities folders, since they are public
     export ORDERER_TLS_CA="${NETWORK_IDS_PATH}/${ORDERER_DOMAIN}/msp/tlscacerts/tlsca.${ORDERER_DOMAIN}-cert.pem"
     export ORDERER_TLS_SIGN_CERT="${NETWORK_IDS_PATH}/${ORDERER_DOMAIN}/tls/server.crt"
 
@@ -62,8 +71,15 @@ set_orderer() {
 }
 
 set_peer() {
-    local endpoints_file=$1
+    local org_domain=$1
     local peer_id=$2
+    local endpoints_file="${NETWORK_IDS_PATH}/${org_domain}/endpoints.json"
+
+    if [ ! -f "${endpoints_file}" ]; then
+        echo "Error: Endpoints file ${endpoints_file} does not exist."
+        exit 1
+    fi
+
     local peer=$(jq -r --arg id "$peer_id" '.[$id]' "$endpoints_file")
 
     if [ -z "$peer" ]; then
@@ -76,6 +92,8 @@ set_peer() {
     export CORE_PEER_TLS_ENABLED=true
     export CORE_PEER_LOCALMSPID=$(echo "$peer" | jq -r '.localMspId')
     export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.address')
+    
+    # NOTE: this can be get from both organizations and identities folders, since it is public
     export CORE_PEER_TLS_ROOTCERT_FILE="${NETWORK_IDS_PATH}/${PEER_DOMAIN}/msp/tlscacerts/tlsca.${PEER_DOMAIN}-cert.pem"
     
     # NOTE: this is private and should not be in the shared identity folder

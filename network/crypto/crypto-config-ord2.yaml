@@ -3,6 +3,6 @@ OrdererOrgs:
     Domain: ord2.testbed.local
     EnableNodeOUs: true
     Specs:
-      - Hostname: orderer2
+      - Hostname: orderer
         SANS:
           - localhost # Alternative name for the orderer

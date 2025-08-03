@@ -19,14 +19,7 @@ generate_genesis() {
 
 join_orderer() {
     local ord_hostname=$1
-    local ord_domain=$(echo "$ord_hostname" | cut -d'.' -f2-)
-    local endpoints_file="${NETWORK_IDS_PATH}/${ord_domain}/endpoints.json"
-    if [ ! -f "${endpoints_file}" ]; then
-        echo "Error: Endpoints file ${endpoints_file} does not exist."
-        exit 1
-    fi
-
-    set_orderer ${endpoints_file} ${ord_hostname}
+    set_orderer ${ord_hostname}
     osnadmin channel join \
         --channelID ${NETWORK_CHN_NAME} \
         --config-block ${GENESIS_BLOCK} \
@@ -50,7 +43,7 @@ join_organization() {
     local peers_count=$(jq -r "keys | length" ${endpoints_file})
 
     for ((i=1; i<=peers_count; i++)); do
-        set_peer ${endpoints_file} ${i}
+        set_peer ${org_domain} ${i}
         peer channel join -b ${GENESIS_BLOCK}
 
         if [ $? -ne 0 ]; then

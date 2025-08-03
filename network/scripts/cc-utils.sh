@@ -54,9 +54,13 @@ check_commit_readiness() {
 }
 
 install_chaincode() {
-    local peer_count=$(jq -r '. | length' ${PEERS_JSON_FILE})
-    for ((i=1; i<=peer_count; i++)); do
-        set_peer $i
+
+    local org_domain=$1
+    local endpoints_file="${NETWORK_IDS_PATH}/${org_domain}/endpoints.json"
+    local peers_count=$(jq -r "keys | length" ${endpoints_file})
+
+    for ((i=1; i<=peers_count; i++)); do
+        set_peer ${org_domain} ${i}
         peer lifecycle chaincode install ${CC_PKG_PATH}
         if [ $? -ne 0 ]; then
             echo "Failed to install chaincode on peer $i"
@@ -68,7 +72,7 @@ install_chaincode() {
 approve_chaincode() {
     peer lifecycle chaincode approveformyorg \
         -o ${ORDERER_ADDRESS} \
-        --ordererTLSHostnameOverride ${ORDERER_HOST} \
+        --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
         --tls \
         --cafile ${ORDERER_TLS_CA} \
         --channelID ${NETWORK_CHN_NAME} \

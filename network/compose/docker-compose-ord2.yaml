@@ -1,13 +1,13 @@
 volumes:
-  orderer2_data:
+  orderer_ord2_data:
 
 networks:
   fabric_net:
     name: fabric_net
 
 services:
-  orderer2.ord2.testbed.local:
-    container_name: orderer2.ord2.testbed.local
+  orderer.ord2.testbed.local:
+    container_name: orderer.ord2.testbed.local
     image: hyperledger/fabric-orderer:${FABRIC_VERSION}
     labels:
       service: hyperledger-fabric
@@ -15,7 +15,7 @@ services:
       - FABRIC_LOGGING_SPEC=INFO
       - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
       - ORDERER_GENERAL_LISTENPORT=8050
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPID=Ord2MSP
       - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
       # enabled TLS
       - ORDERER_GENERAL_TLS_CLIENTAUTHREQUIRED=false
@@ -39,9 +39,9 @@ services:
     working_dir: /root
     command: orderer
     volumes:
-      - ../organizations/ordererOrganizations/ord2.testbed.local/orderers/orderer2.ord2.testbed.local/msp/:/var/hyperledger/orderer/msp
-      - ../organizations/ordererOrganizations/ord2.testbed.local/orderers/orderer2.ord2.testbed.local/tls/:/var/hyperledger/orderer/tls
-      - orderer2_data:/var/hyperledger/production/orderer
+      - ../organizations/ordererOrganizations/ord2.testbed.local/orderers/orderer.ord2.testbed.local/msp/:/var/hyperledger/orderer/msp
+      - ../organizations/ordererOrganizations/ord2.testbed.local/orderers/orderer.ord2.testbed.local/tls/:/var/hyperledger/orderer/tls
+      - orderer_ord2_data:/var/hyperledger/production/orderer
     ports:
       - 8050:8050
       - 8053:8053

@@ -1,6 +1,6 @@
 Organizations:
   - &Ord1
-    Name: Ord1MSP
+    Name: Ord1
     ID: Ord1MSP
     MSPDir: ../identities/ord1.testbed.local/msp
     Policies:
@@ -14,10 +14,10 @@ Organizations:
         Type: Signature
         Rule: "OR('Ord1MSP.admin')"
     OrdererEndpoints:
-      - orderer1.ord1.testbed.local:7050
+      - orderer.ord1.testbed.local:7050
   
   - &Ord2
-    Name: Ord2MSP
+    Name: Ord2
     ID: Ord2MSP
     MSPDir: ../identities/ord2.testbed.local/msp
     Policies:
@@ -31,10 +31,10 @@ Organizations:
         Type: Signature
         Rule: "OR('Ord2MSP.admin')"
     OrdererEndpoints:
-      - orderer2.ord2.testbed.local:8050
+      - orderer.ord2.testbed.local:8050
   
   - &Org1
-    Name: Org1MSP
+    Name: Org1
     ID: Org1MSP
     MSPDir: ../identities/org1.testbed.local/msp
     Policies:
@@ -55,7 +55,7 @@ Organizations:
         Port: 7051
   
   - &Org2
-    Name: Org2MSP
+    Name: Org2
     ID: Org2MSP
     MSPDir: ../identities/org2.testbed.local/msp
     Policies:
@@ -76,7 +76,7 @@ Organizations:
         Port: 8051
   
   - &Org3
-    Name: Org3MSP
+    Name: Org3
     ID: Org3MSP
     MSPDir: ../identities/org3.testbed.local/msp
     Policies:
@@ -133,8 +133,8 @@ Orderer: &OrdererDefaults
   OrdererType: etcdraft
   
   Addresses:
-    - orderer1.ord1.testbed.local:7050
-    - orderer2.ord2.testbed.local:8050
+    - orderer.ord1.testbed.local:7050
+    - orderer.ord2.testbed.local:8050
 
   # Batch configuration: settings for batch time and size
   BatchTimeout: 2s
@@ -146,13 +146,13 @@ Orderer: &OrdererDefaults
   Policies:
     Readers:
       Type: Signature
-      Rule: "OR('OrdererMSP.member')"  # All members of the OrdererMSP can read
+      Rule: "OR('Ord1MSP.member', 'Ord2MSP.member')"  # All members of the OrdererMSPs can read
     Writers:
       Type: Signature
-      Rule: "OR('OrdererMSP.member')"  # All members of the OrdererMSP can write
+      Rule: "OR('Ord1MSP.member', 'Ord2MSP.member')"  # All members of the OrdererMSPs can write
     Admins:
       Type: Signature
-      Rule: "OR('OrdererMSP.admin')"  # Only admins can manage the orderer
+      Rule: "OR('Ord1MSP.admin', 'Ord2MSP.admin')"  # Only admins of the OrdererMSPs can manage the orderer
     BlockValidation:
       Type: ImplicitMeta
       Rule: "ANY Writers"  # Any writer can validate blocks
@@ -181,11 +181,11 @@ Profiles:
       <<: *OrdererDefaults
       EtcdRaft:
         Consenters:
-          - Host: orderer1.ord1.testbed.local
+          - Host: orderer.ord1.testbed.local
             Port: 7050
             ClientTLSCert: ../identities/ord1.testbed.local/tls/server.crt
             ServerTLSCert: ../identities/ord1.testbed.local/tls/server.crt
-          - Host: orderer2.ord2.testbed.local
+          - Host: orderer.ord2.testbed.local
             Port: 8050
             ClientTLSCert: ../identities/ord2.testbed.local/tls/server.crt
             ServerTLSCert: ../identities/ord2.testbed.local/tls/server.crt
