@@ -13,15 +13,14 @@
 ################################################################################
 General:
     # Listen address: The IP on which to bind to listen.
-    ListenAddress: 127.0.0.1
+    ListenAddress: 0.0.0.0
 
-    # Listen port: The port on which to bind to listen.
     ListenPort: 7050
 
     # TLS: TLS settings for the GRPC server.
     TLS:
         # Require server-side TLS
-        Enabled: false
+        Enabled: true
         # PrivateKey governs the file location of the private key of the TLS certificate.
         PrivateKey: tls/server.key
         # Certificate governs the file location of the server TLS certificate.
@@ -69,10 +68,13 @@ General:
         # ClientCertificate governs the file location of the client TLS certificate
         # used to establish mutual TLS connections with other ordering service nodes.
         # If not set, the server General.TLS.Certificate is re-used.
-        ClientCertificate:
+        ClientCertificate: tls/server.crt
         # ClientPrivateKey governs the file location of the private key of the client TLS certificate.
         # If not set, the server General.TLS.PrivateKey is re-used.
-        ClientPrivateKey:
+        ClientPrivateKey: tls/server.key
+
+        RootCAs:
+          - tls/ca.crt
 
         # The below 4 properties should be either set together, or be unset together.
         # If they are set, then the orderer node uses a separate listener for intra-cluster
@@ -94,7 +96,7 @@ General:
     # system channel is specified. The option can be one of:
     #   "file" - path to a file containing the genesis block or config block of system channel
     #   "none" - allows an orderer to start without a system channel configuration
-    BootstrapMethod: file
+    BootstrapMethod: none
 
     # Bootstrap file: The file containing the bootstrap block to use when
     # initializing the orderer system channel and BootstrapMethod is set to
@@ -340,7 +342,7 @@ Operations:
 ################################################################################
 Metrics:
     # The metrics provider is one of statsd, prometheus, or disabled
-    Provider: disabled
+    Provider: prometheus
 
     # The statsd configuration
     Statsd:
@@ -371,13 +373,16 @@ Admin:
     # TLS configuration for the admin endpoint
     TLS:
         # TLS enabled
-        Enabled: false
+        Enabled: true
 
         # Certificate is the location of the PEM encoded TLS certificate
-        Certificate:
+        Certificate: /etc/hyperledger/fabric/tls/server.crt
 
         # PrivateKey points to the location of the PEM-encoded key
-        PrivateKey:
+        PrivateKey: /etc/hyperledger/fabric/tls/server.key
+
+        RootCAs:
+          - /etc/hyperledger/fabric/tls/ca.crt
 
         # Most admin service endpoints require client authentication when TLS
         # is enabled. ClientAuthRequired requires client certificate authentication
@@ -388,7 +393,7 @@ Admin:
         ClientAuthRequired: true
 
         # Paths to PEM encoded ca certificates to trust for client authentication
-        ClientRootCAs: []
+        ClientRootCAs: [/etc/hyperledger/fabric/tls/ca.crt]
 
 ################################################################################
 #
@@ -401,7 +406,7 @@ Admin:
 ################################################################################
 ChannelParticipation:
     # Channel participation API is enabled.
-    Enabled: false
+    Enabled: true
 
     # The maximum size of the request body when joining a channel.
     MaxRequestBodySize: 1 MB
