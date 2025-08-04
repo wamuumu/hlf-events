@@ -7,7 +7,7 @@ MODIFIED=${NETWORK_CHN_PATH}/modified_config.json
 
 generate_genesis() {
     configtxgen \
-        -configPath ${NETWORK_CFG_PATH} \
+        -configPath ${NETWORK_CTX_PATH} \
         -profile ChannelUsingRaft \
         -outputBlock ${GENESIS_BLOCK} \
         -channelID ${NETWORK_CHN_NAME}
@@ -81,11 +81,9 @@ generate_definition() {
     local org_name=$(yq -r '.Organizations[0].Name' ${configtx_file})
     local org_msp_id=$(yq -r '.Organizations[0].ID' ${configtx_file})
     local target_dir=$(yq -r '.Organizations[0].MSPDir' ${configtx_file})
-    local definition_file="$(dirname ${target_dir})/${org_name,,}.json"
+    local definition_file="$(dirname ${target_dir#../})/${org_name,,}.json"
 
-    cp ${configtx_file} "$(dirname ${configtx_file})/configtx.yaml"
     configtxgen -configPath $(dirname ${configtx_file}) -printOrg ${org_name} > ${definition_file}
-    rm "$(dirname ${configtx_file})/configtx.yaml"
 
     echo "${definition_file}"
 }

@@ -72,7 +72,7 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 ./docker-up.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" # Start the containers for organization 4
 
 # 3. Create a join request for the new organization
-./network-create-join-request.sh "${NETWORK_CTX_PATH}/configtx-org4.yaml" "org1.testbed.local" # TODO: set identity as environment variable
+./network-create-join-request.sh "${NETWORK_CTX_PATH}/org4/configtx.yaml" "org1.testbed.local" # TODO: set identity as environment variable
 
 # 4. Approve the join request by signing it
 ./network-approve-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
@@ -90,3 +90,12 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 # 8. Install and approve the chaincode for organization 4
 ./chaincode-install.sh "org4.testbed.local"         # TODO: set identity as environment variable
 ./chaincode-approve.sh "org4.testbed.local"         # TODO: set identity as environment variable
+
+# ---- For test only ----
+./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-ord1.yaml" --hard
+./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-ord2.yaml" --hard
+./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org1.yaml" --hard
+./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org2.yaml" --hard
+./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org3.yaml" --hard
+./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" --hard
+# -----------------------
