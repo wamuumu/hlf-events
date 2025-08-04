@@ -11,11 +11,11 @@ if [ -z "$ORG_DOMAIN" ]; then
 fi
 
 # Verify the identity of the caller
-verify_identity "$ORG_DOMAIN"
+verify_identity ${ORG_DOMAIN}
 
 # Set the default orderer and peer
-set_orderer "orderer.ord1.testbed.local" # TODO: set variable as environment variable
-set_peer "${ORG_DOMAIN}" "${DEFAULT_PEER}"
+set_orderer ${DEFAULT_ORD}
+set_peer ${ORG_DOMAIN} ${DEFAULT_PEER_ID}
 
 # Resolve the sequence number for the chaincode
 resolveSequence

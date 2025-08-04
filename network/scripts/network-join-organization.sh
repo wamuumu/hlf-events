@@ -11,6 +11,12 @@ if [ -z "$ORG_DOMAIN" ]; then
     exit 1
 fi
 
+# Check if the organization exists in the identities folder
+if [ ! -d "${NETWORK_IDS_PATH}/peerOrganizations/${ORG_DOMAIN}" ]; then
+    echo "Error: Organization '${ORG_DOMAIN}' does not exist in the identities folder."
+    exit 1
+fi
+
 # Verify the identity of the caller
 verify_identity "$ORG_DOMAIN"
 

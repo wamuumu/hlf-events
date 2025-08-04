@@ -1,8 +1,8 @@
 Organizations:  
   - &Org4
-    Name: Org4MSP
+    Name: Org4
     ID: Org4MSP
-    MSPDir: ../../organizations/peerOrganizations/org4.testbed.local/msp
+    MSPDir: ../identities/peerOrganizations/org4.testbed.local/msp
     Policies:
       Readers:
         Type: Signature

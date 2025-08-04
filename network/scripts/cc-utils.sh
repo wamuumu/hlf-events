@@ -79,44 +79,44 @@ commit_chaincode() {
         ${tls_identities}
 }
 
-invoke_chaincode() {
+# invoke_chaincode() {
 
-    # TODO: add params
-    # TODO: single function for all invokations or separate? Maybe contract-utils.sh ?
+#     # TODO: add params
+#     # TODO: single function for all invokations or separate? Maybe contract-utils.sh ?
 
-    TIMESTAMP=$(date +%s)
-    PID="pid_test"
-    URI="https://example.com/resource/$PID"
+#     TIMESTAMP=$(date +%s)
+#     PID="pid_test"
+#     URI="https://example.com/resource/$PID"
     
-    # Generate hash - use shasum on macOS, sha256sum on Linux
-    if command -v sha256sum &> /dev/null; then
-        HASH=$(echo -n "$PID$URI$TIMESTAMP" | sha256sum | cut -d' ' -f1)
-    elif command -v shasum &> /dev/null; then
-        HASH=$(echo -n "$PID$URI$TIMESTAMP" | shasum -a 256 | cut -d' ' -f1)
-    else
-        # Fallback to a simple hash
-        HASH=$(echo -n "$PID$URI$TIMESTAMP" | od -An -tx1 | tr -d ' \n')
-    fi
+#     # Generate hash - use shasum on macOS, sha256sum on Linux
+#     if command -v sha256sum &> /dev/null; then
+#         HASH=$(echo -n "$PID$URI$TIMESTAMP" | sha256sum | cut -d' ' -f1)
+#     elif command -v shasum &> /dev/null; then
+#         HASH=$(echo -n "$PID$URI$TIMESTAMP" | shasum -a 256 | cut -d' ' -f1)
+#     else
+#         # Fallback to a simple hash
+#         HASH=$(echo -n "$PID$URI$TIMESTAMP" | od -An -tx1 | tr -d ' \n')
+#     fi
     
-    # Construct the JSON payload properly
-    JSON_PAYLOAD="{\"Function\":\"CreateResource\",\"Args\":[\"$PID\",\"$URI\",\"$HASH\",\"$TIMESTAMP\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}"
+#     # Construct the JSON payload properly
+#     JSON_PAYLOAD="{\"Function\":\"CreateResource\",\"Args\":[\"$PID\",\"$URI\",\"$HASH\",\"$TIMESTAMP\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}"
     
-    TLS_IDENTITIES=$(get_tls_identities)
+#     TLS_IDENTITIES=$(get_tls_identities)
 
-    set_organization_peer ${DEFAULT_ORG} 1 >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1 #TODO: pass org_id as param
-    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1
-    peer chaincode invoke \
-        -o $ORDERER_ADDR \
-        -C $NETWORK_CHN_NAME \
-        -n $CC_NAME \
-        --tls \
-        --cafile $ORDERER_ADMIN_TLS_CA \
-        ${TLS_IDENTITIES} \
-        -c "$JSON_PAYLOAD" \
-        >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1
-    echo "Chaincode invoked successfully. Payload:"
-    echo "$JSON_PAYLOAD" | jq .
-}
+#     set_organization_peer ${DEFAULT_ORG} 1 >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1 #TODO: pass org_id as param
+#     set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1
+#     peer chaincode invoke \
+#         -o $ORDERER_ADDR \
+#         -C $NETWORK_CHN_NAME \
+#         -n $CC_NAME \
+#         --tls \
+#         --cafile $ORDERER_ADMIN_TLS_CA \
+#         ${TLS_IDENTITIES} \
+#         -c "$JSON_PAYLOAD" \
+#         >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1
+#     echo "Chaincode invoked successfully. Payload:"
+#     echo "$JSON_PAYLOAD" | jq .
+# }
 
 # query_chaincode() {
 #     # TODO: implement

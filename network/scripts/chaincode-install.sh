@@ -12,10 +12,10 @@ if [ -z "$ORG_DOMAIN" ]; then
 fi
 
 # Verify the identity of the caller
-verify_identity "$ORG_DOMAIN"
+verify_identity ${ORG_DOMAIN}
 
 # Calculate the package ID for the chaincode (INFO only)
 calculate_package_id
 
 # Install the chaincode
-install_chaincode "$ORG_DOMAIN"
+install_chaincode ${ORG_DOMAIN}

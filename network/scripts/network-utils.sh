@@ -2,6 +2,9 @@
 
 . set-env.sh
 
+CURRENT=${NETWORK_CHN_PATH}/config.json
+MODIFIED=${NETWORK_CHN_PATH}/modified_config.json
+
 generate_genesis() {
     configtxgen \
         -configPath ${NETWORK_CFG_PATH} \
@@ -38,12 +41,14 @@ join_orderer() {
 
 join_organization() {
 
-    # TODO: check if the organization is already in the config block. 
-    # If it is, then join the peers to channel directly.
-    # If not, proceed with the steps to add a new organization to the block.
-
     local org_domain=$1
     local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
+
+    if [ ! -f "${endpoints_file}" ]; then
+        echo "Error: Endpoints file not found for organization '${org_domain}'."
+        exit 1
+    fi
+
     local peers_count=$(jq -r "keys | length" ${endpoints_file})
 
     for ((i=1; i<=peers_count; i++)); do
@@ -59,54 +64,138 @@ join_organization() {
     done
 }
 
-# join_organization() {
-#     echo "Joining organization ${ORG_NAME} to the channel ${NETWORK_CHN_NAME}"
+generate_definition() {
 
-#     fetch_channel_config 1
-#     # Add the new organization to the config
-#     jq -s --arg org_name "${ORG_NAME}" '.[0] * {"channel_group":{"groups":{"Application":{"groups": {($org_name + "MSP"):.[1]}}}}}' ${ORIGINAL} ${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN}/${ORG_NAME,,}.json > ${MODIFIED}
+    local configtx_file=$1
+
+    if [ -z "${configtx_file}" ]; then
+        echo "Usage: $0 <configtx_file>"
+        exit 1
+    fi
+
+    if [ ! -f "${configtx_file}" ]; then
+        echo "Error: Configtx file '${configtx_file}' does not exist."
+        exit 1
+    fi
+
+    local org_name=$(yq -r '.Organizations[0].Name' ${configtx_file})
+    local org_msp_id=$(yq -r '.Organizations[0].ID' ${configtx_file})
+    local target_dir=$(yq -r '.Organizations[0].MSPDir' ${configtx_file})
+    local definition_file="$(dirname ${target_dir})/${org_name,,}.json"
+
+    cp ${configtx_file} "$(dirname ${configtx_file})/configtx.yaml"
+    configtxgen -configPath $(dirname ${configtx_file}) -printOrg ${org_name} > ${definition_file}
+    rm "$(dirname ${configtx_file})/configtx.yaml"
+
+    echo "${definition_file}"
+}
+
+fetch_channel_config() {
+
+    local org_domain=$1
+
+    set_orderer ${DEFAULT_ORD}
+    set_peer ${org_domain} ${DEFAULT_PEER_ID}
+
+    echo "Fetching the most recent configuration block for the channel"
+    peer channel fetch config ${NETWORK_CHN_PATH}/config_block.pb \
+        -o ${ORDERER_ADDRESS} \
+        --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
+        -c ${NETWORK_CHN_NAME} \
+        --tls \
+        --cafile ${ORDERER_TLS_CA}
+
+    echo "Decoding config block to JSON and isolating config to ${CURRENT}"
+    configtxlator proto_decode \
+        --input ${NETWORK_CHN_PATH}/config_block.pb \
+        --type common.Block \
+        --output ${NETWORK_CHN_PATH}/config_block.json
+
+    jq .data.data[0].payload.data.config ${NETWORK_CHN_PATH}/config_block.json > "${CURRENT}"
+}
+
+create_update_transaction() {
+
+    local org_name=$1
+
+    if [ -z "${org_name}" ]; then
+        echo "Usage: $0 <organization_name>"
+        exit 1
+    fi
+
+    # Encode the current configuration in protobuf format
+    configtxlator proto_encode \
+        --input "${CURRENT}" \
+        --type common.Config \
+        --output ${NETWORK_CHN_PATH}/current_config.pb
+
+    # Encode the modified configuration in protobuf format
+    configtxlator proto_encode \
+        --input "${MODIFIED}" \
+        --type common.Config \
+        --output ${NETWORK_CHN_PATH}/modified_config.pb
+
+    # Compute the config update between the original and modified configurations
+    configtxlator compute_update \
+        --channel_id "${NETWORK_CHN_NAME}" \
+        --original ${NETWORK_CHN_PATH}/current_config.pb \
+        --updated ${NETWORK_CHN_PATH}/modified_config.pb \
+        --output ${NETWORK_CHN_PATH}/config_update.pb
+
+    # Decode the config update to JSON format
+    configtxlator proto_decode \
+        --input ${NETWORK_CHN_PATH}/config_update.pb \
+        --type common.ConfigUpdate \
+        --output ${NETWORK_CHN_PATH}/config_update.json
+
+    echo '{"payload":{"header":{"channel_header":{"channel_id":"'${NETWORK_CHN_NAME}'", "type":2}},"data":{"config_update":'$(cat ${NETWORK_CHN_PATH}/config_update.json)'}}}' | jq . > ${NETWORK_CHN_PATH}/config_update_in_envelope.json
+
+    # Encode the config update in envelope format
+    configtxlator proto_encode \
+        --input ${NETWORK_CHN_PATH}/config_update_in_envelope.json \
+        --type common.Envelope \
+        --output ${NETWORK_CHN_PATH}/${org_name,,}_update_in_envelope.pb
+}
+
+sign_update_transaction() {
+    local update_transaction=$1
+    local org_domain=$2
+    set_peer ${org_domain} ${DEFAULT_PEER_ID}
+    peer channel signconfigtx -f ${update_transaction}
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to sign the update transaction."
+        exit 1
+    else
+        echo "Update transaction signed successfully."
+    fi
+}
+
+commit_update_transaction() {
+    local update_transaction=$1
+    local org_domain=$2
+    set_orderer ${DEFAULT_ORD}
+    set_peer ${org_domain} ${DEFAULT_PEER_ID}
+    peer channel update \
+        -f ${update_transaction} \
+        -c ${NETWORK_CHN_NAME} \
+        -o ${ORDERER_ADDRESS} \
+        --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
+        --tls \
+        --cafile ${ORDERER_TLS_CA}
     
-#     create_update_transaction
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to commit the update transaction to channel '${NETWORK_CHN_NAME}'."
+        exit 1
+    else
+        echo "Update transaction committed to channel '${NETWORK_CHN_NAME}' successfully."
 
-#     # In order to add the organization, the admin policies must be satisfied.
-#     # This requires that "MAJORITY of the organizations" sign the config update transaction.
-#     # Sign with all the peers of all organizations
-    
-#     for ((i=1; i<=${ORG_COUNT}; i++)); do
-#         PEER_COUNT=$(jq -r ".\"$i\".peers | length" ${ORGANIZATIONS_JSON_FILE})
-#         for ((j=1; j<=PEER_COUNT; j++)); do
-#             set_organization_peer $i $j
-#             peer channel signconfigtx -f ${OUTPUT}
-#         done
-#     done
-
-#     # Submit the signed config update transaction to the orderer
-#     set_orderer 1
-#     peer channel update \
-#         -f ${OUTPUT} \
-#         -c ${NETWORK_CHN_NAME} \
-#         -o ${ORDERER_ADDR} \
-#         --ordererTLSHostnameOverride ${ORDERER_HOST} \
-#         --tls \
-#         --cafile ${ORDERER_ADMIN_TLS_CA}
-
-#     # Remove all the intermediary files, except for the genesis.block
-#     rm ${NETWORK_CHN_PATH}/*.json
-#     rm ${NETWORK_CHN_PATH}/*.pb
-
-#     BLOCKFILE=${NETWORK_CHN_PATH}/genesis.block
-#     PEER_COUNT=$(jq -r ".\"$ORG_ID\".peers | length" ${ORGANIZATIONS_JSON_FILE})
-#     for ((i=1; i<=PEER_COUNT; i++)); do
-#         set_organization_peer ${ORG_ID} $i
-#         peer channel join -b $BLOCKFILE
-#     done
-#     echo "All peers of organization ${ORG_NAME} successfully joined the channel ${NETWORK_CHN_NAME}"
-
-#     echo "Organization ${ORG_NAME} successfully added to channel ${NETWORK_CHN_NAME}"
-# }
+        rm ${NETWORK_CHN_PATH}/*.json
+        rm ${NETWORK_CHN_PATH}/*.pb
+    fi
+}
 
 # set_anchor_peer() {
-#     echo "Setting anchor peer for organization ${ORG_NAME} on channel ${NETWORK_CHN_NAME}"
 
 #     # Fetch the current channel configuration to add the anchor peer
 #     fetch_channel_config ${ORG_ID}
@@ -123,7 +212,7 @@ join_organization() {
 #     peer channel update \
 #         -f ${OUTPUT} \
 #         -c ${NETWORK_CHN_NAME} \
-#         -o ${ORDERER_ADDR} \
+#         -o ${ORDERER_ADDRESS} \
 #         --ordererTLSHostnameOverride ${ORDERER_HOST} \
 #         --tls \
 #         --cafile ${ORDERER_ADMIN_TLS_CA}

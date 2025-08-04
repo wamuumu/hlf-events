@@ -3,22 +3,22 @@
 . set-env.sh
 
 #User has not provided a name
-if [ -z "${CC_NAME}" ]; then
+if [ -z "$CC_NAME" ]; then
     echo "Error: No chaincode name was provided."
     exit 1
 
 # User has not provided a path
-elif [ -z "${CC_SRC_PATH}" ]; then
+elif [ -z "$CC_SRC_PATH" ]; then
     echo "Error: No chaincode path was provided."
     exit 1
 
 # User has not provided a language
-elif [ -z "${CC_SRC_LANG}" ]; then
+elif [ -z "$CC_SRC_LANG" ]; then
     echo "Error: No chaincode language was provided."
     exit 1
 
 # User has not provided a version
-elif [ -z "${CC_VERSION}" ]; then
+elif [ -z "$CC_VERSION" ]; then
     echo "Error: No chaincode version was provided."
     exit 1
 
@@ -36,9 +36,9 @@ elif [ "$CC_SRC_LANG" = "javascript" ] || [ "$CC_SRC_LANG" = "typescript" ]; the
 else
     echo "Error: The chaincode language ${CC_SRC_LANG} is not supported by this script. Supported chaincode languages are: go, javascript, typescript."
     exit 1
-fi
+f
 
-if [ ! -d "${NETWORK_PKG_PATH}" ]; then
+if [ ! -d "$NETWORK_PKG_PATH" ]; then
     mkdir -p ${NETWORK_PKG_PATH}
 fi
 
