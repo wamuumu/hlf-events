@@ -7,31 +7,9 @@ export FABRIC_CFG_PATH=${NETWORK_CFG_PATH}
 export COMPOSE_BAKE=true
 export FABRIC_VERSION
 
-# TODO: move files away from this script
-
 # General Files
 GENESIS_BLOCK=${NETWORK_CHN_PATH}/genesis.block
 CC_PKG_PATH=${NETWORK_PKG_PATH}/${CC_NAME}_${CC_VERSION}.tar.gz
-ORD_JSON_FILE=${NETWORK_IDS_PATH}/orderers.json
-ORG_JSON_FILE=${NETWORK_IDS_PATH}/organizations.json
-PEERS_JSON_FILE=${NETWORK_IDS_PATH}/peers.json
-
-# These are the files describing the initial state of the network in the genesis block
-CONFIGTX_FILE=${NETWORK_CFG_PATH}/configtx.yaml
-CRYPTO_CONFIG_FILES=(
-    ${NETWORK_CRP_PATH}/crypto-config-ord1.yaml
-    ${NETWORK_CRP_PATH}/crypto-config-ord2.yaml
-    ${NETWORK_CRP_PATH}/crypto-config-org1.yaml
-    ${NETWORK_CRP_PATH}/crypto-config-org2.yaml
-    ${NETWORK_CRP_PATH}/crypto-config-org3.yaml
-)
-COMPOSE_FILES=(
-    "${NETWORK_CMP_PATH}/docker-compose-ord1.yaml"
-    "${NETWORK_CMP_PATH}/docker-compose-ord2.yaml"
-    "${NETWORK_CMP_PATH}/docker-compose-org1.yaml"
-    "${NETWORK_CMP_PATH}/docker-compose-org2.yaml"
-    "${NETWORK_CMP_PATH}/docker-compose-org3.yaml"
-)
 
 set_orderer() {
     local orderer_hostname=$1
