@@ -1,6 +1,5 @@
+bin/
 channel/
+identities/
 organizations/
 package/
-identities/
-logs/
-bin/
