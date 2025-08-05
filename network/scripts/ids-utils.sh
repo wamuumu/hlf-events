@@ -154,3 +154,8 @@ get_tls_identities() {
         echo "--peerAddresses ${peer_address} --tlsRootCertFiles ${tls_root_cert_file}"
     done
 }
+
+remove_identity() {
+    local org_domain=$1
+    rm -rf "${NETWORK_IDS_PATH}/peerOrganizations/${org_domain,,}"
+}

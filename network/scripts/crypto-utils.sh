@@ -10,4 +10,12 @@ generate_crypto() {
     echo "Cryptographic material generated successfully in ${NETWORK_ORG_PATH}"
 }
 
+delete_crypto() {
+
+    local ORG_DOMAIN=$1
+
+    rm -rf "${NETWORK_ORG_PATH}/peerOrganizations/${ORG_DOMAIN,,}"
+    echo "Cryptographic material for organization ${ORG_DOMAIN} deleted successfully."
+}
+
 

@@ -20,7 +20,4 @@ if [ ! -f "$COMPOSE_FILE" ]; then
 fi
 
 # Down the specified compose file with the appropriate method
-[[ $HARD == true ]] && force_down ${COMPOSE_FILE} || down ${COMPOSE_FILE}
-
-# Prune the remaining resources
-prune
+[[ $HARD == true ]] && (force_down ${COMPOSE_FILE} && prune) || down ${COMPOSE_FILE}

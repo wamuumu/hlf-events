@@ -9,7 +9,7 @@ up() {
 
 down() {
     local COMPOSE_FILE=$1
-    docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} down --remove-orphans
+    docker compose -f ${COMPOSE_FILE} -p ${DOCKER_PROJECT_NAME} down
 }
 
 force_down() {
