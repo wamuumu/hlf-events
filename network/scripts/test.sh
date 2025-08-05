@@ -53,7 +53,12 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 ./chaincode-approve.sh "org3.testbed.local" # TODO: set identity as environment variable
 
 # Commit the chaincode definition to the channel (only once)
-./chaincode-commit.sh "org1.testbed.local"  # TODO: set identity as environment variable
+./chaincode-commit.sh "org1.testbed.local" # TODO: set identity as environment variable
+
+# Test the chaincode invocation
+./chaincode-invoke.sh "org1.testbed.local" 1  # TODO: set identity as environment variable
+
+sleep 5
 
 # Now, organization 4 wants to join the network (the flow of actions is strictly defined and must be followed in this order):
 # 1. The new organization needs to create its credentials and public identity
@@ -63,7 +68,9 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 # 5. A participant needs to submit the join request to the orderer
 # 6. The new organization needs to join the channel
 # 7. The new organization needs to set the anchor peer
-# 8. The new organization needs to install and approve the chaincode in order to use it
+# 8. The new organization needs to install the chaincode
+# 9. All the organizations need to approve the chaincode
+# 10. Commit the chaincode (only one) to include the new organization in the endorsment policy (i.e. use the chaincode)
 
 # 1. Credentials and public identity creation
 ./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-org4.yaml" "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" # Done by organization 4
@@ -89,8 +96,19 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 ./network-set-anchor-peer.sh "org4.testbed.local" 1 # TODO: set identity as environment variable, assuming peer ID 1 is the anchor peer
 
 # 8. Install and approve the chaincode for organization 4
-./chaincode-install.sh "org4.testbed.local"         # TODO: set identity as environment variable
-./chaincode-approve.sh "org4.testbed.local"         # TODO: set identity as environment variable
+./chaincode-install.sh "org4.testbed.local"          # TODO: set identity as environment variable
+
+# 9. Approve the chaincode for all organizations
+./chaincode-approve.sh "org1.testbed.local"          # TODO: set identity as environment variable
+./chaincode-approve.sh "org2.testbed.local"          # TODO: set identity as environment variable
+./chaincode-approve.sh "org3.testbed.local"          # TODO: set identity as environment variable
+./chaincode-approve.sh "org4.testbed.local"          # TODO: set identity as environment variable
+
+# 10. Commit the chaincode to include the new organization in the endorsement policy
+./chaincode-commit.sh "org1.testbed.local"           # TODO: set identity as environment variable
+
+# Test the chaincode invocation with the new organization
+./chaincode-invoke.sh "org4.testbed.local" 1         # TODO: set identity as environment variable
 
 sleep 5 
 

@@ -3,8 +3,8 @@
 . ids-utils.sh
 
 calculate_package_id() {
-    export PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PKG_PATH})
-    echo "Calculated package ID: ${PACKAGE_ID}"
+    PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PKG_PATH})
+    echo ${PACKAGE_ID}
 }
 
 resolveSequence() {
@@ -51,12 +51,14 @@ install_chaincode() {
 }
 
 approve_chaincode() {
+    local PACKAGE_ID=$1
     peer lifecycle chaincode approveformyorg \
         -o ${ORDERER_ADDRESS} \
         --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
         --tls \
         --cafile ${ORDERER_TLS_CA} \
         --channelID ${NETWORK_CHN_NAME} \
+        --package-id ${PACKAGE_ID} \
         --name ${CC_NAME} \
         --version ${CC_VERSION} \
         --sequence ${CC_SEQUENCE}
@@ -79,44 +81,44 @@ commit_chaincode() {
         ${tls_identities}
 }
 
-# invoke_chaincode() {
+invoke_chaincode() {
 
-#     # TODO: add params
-#     # TODO: single function for all invokations or separate? Maybe contract-utils.sh ?
+    # TODO: add params
+    # TODO: single function for all invokations or separate? Maybe contract-utils.sh ?
 
-#     TIMESTAMP=$(date +%s)
-#     PID="pid_test"
-#     URI="https://example.com/resource/$PID"
-    
-#     # Generate hash - use shasum on macOS, sha256sum on Linux
-#     if command -v sha256sum &> /dev/null; then
-#         HASH=$(echo -n "$PID$URI$TIMESTAMP" | sha256sum | cut -d' ' -f1)
-#     elif command -v shasum &> /dev/null; then
-#         HASH=$(echo -n "$PID$URI$TIMESTAMP" | shasum -a 256 | cut -d' ' -f1)
-#     else
-#         # Fallback to a simple hash
-#         HASH=$(echo -n "$PID$URI$TIMESTAMP" | od -An -tx1 | tr -d ' \n')
-#     fi
-    
-#     # Construct the JSON payload properly
-#     JSON_PAYLOAD="{\"Function\":\"CreateResource\",\"Args\":[\"$PID\",\"$URI\",\"$HASH\",\"$TIMESTAMP\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}"
-    
-#     TLS_IDENTITIES=$(get_tls_identities)
+    local org_domain=$1
+    local peer_id=$2
 
-#     set_organization_peer ${DEFAULT_ORG} 1 >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1 #TODO: pass org_id as param
-#     set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1
-#     peer chaincode invoke \
-#         -o $ORDERER_ADDR \
-#         -C $NETWORK_CHN_NAME \
-#         -n $CC_NAME \
-#         --tls \
-#         --cafile $ORDERER_ADMIN_TLS_CA \
-#         ${TLS_IDENTITIES} \
-#         -c "$JSON_PAYLOAD" \
-#         >> ${NETWORK_LOG_PATH}/chaincode/invoke.log 2>&1
-#     echo "Chaincode invoked successfully. Payload:"
-#     echo "$JSON_PAYLOAD" | jq .
-# }
+    TIMESTAMP=$(date +%s)
+    PID="pid_test_${org_domain}"
+    URI="https://example.com/resource/$PID"
+    
+    # Generate hash - use shasum on macOS, sha256sum on Linux
+    if command -v sha256sum &> /dev/null; then
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | sha256sum | cut -d' ' -f1)
+    elif command -v shasum &> /dev/null; then
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | shasum -a 256 | cut -d' ' -f1)
+    else
+        # Fallback to a simple hash
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | od -An -tx1 | tr -d ' \n')
+    fi
+    
+    # Construct the JSON payload properly
+    JSON_PAYLOAD="{\"Function\":\"CreateResource\",\"Args\":[\"$PID\",\"$URI\",\"$HASH\",\"$TIMESTAMP\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}"
+    
+    TLS_IDENTITIES=$(get_tls_identities)
+
+    set_orderer ${DEFAULT_ORD}
+    set_peer ${org_domain} ${peer_id}
+    peer chaincode invoke \
+        -o $ORDERER_ADDRESS \
+        -C $NETWORK_CHN_NAME \
+        -n $CC_NAME \
+        --tls \
+        --cafile $ORDERER_TLS_CA \
+        ${TLS_IDENTITIES} \
+        -c "$JSON_PAYLOAD"
+}
 
 # query_chaincode() {
 #     # TODO: implement

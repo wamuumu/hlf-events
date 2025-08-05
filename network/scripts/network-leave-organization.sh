@@ -12,6 +12,9 @@ if [ -z "${ORG_DOMAIN}" ]; then
     exit 1
 fi
 
+# Verify the identity of the caller
+verify_identity ${ORG_DOMAIN}
+
 # Remove the public identity of the organization
 remove_identity ${ORG_DOMAIN}
 

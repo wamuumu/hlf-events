@@ -36,7 +36,7 @@ elif [ "$CC_SRC_LANG" = "javascript" ] || [ "$CC_SRC_LANG" = "typescript" ]; the
 else
     echo "Error: The chaincode language ${CC_SRC_LANG} is not supported by this script. Supported chaincode languages are: go, javascript, typescript."
     exit 1
-f
+fi
 
 if [ ! -d "$NETWORK_PKG_PATH" ]; then
     mkdir -p ${NETWORK_PKG_PATH}

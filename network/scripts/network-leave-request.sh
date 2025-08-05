@@ -1,6 +1,7 @@
 #!/bin/bash
 
 . network-utils.sh
+. ids-utils.sh
 
 ORG_CONFIGTX_FILE=$1
 ORG_DOMAIN=$2
@@ -16,6 +17,9 @@ if [ ! -f "${ORG_CONFIGTX_FILE}" ]; then
     echo "Configuration file ${ORG_CONFIGTX_FILE} does not exist."
     exit 1
 fi
+
+# verify the identity of the caller
+verify_identity ${ORG_DOMAIN}
 
 # Fetch the latest channel configuration block and decode it to JSON
 fetch_channel_config ${ORG_DOMAIN}

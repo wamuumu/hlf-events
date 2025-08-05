@@ -12,7 +12,10 @@ services:
     labels:
       service: hyperledger-fabric
     environment:
+      # General variables
       - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_net
+      # Peer specific variables
       - CORE_PEER_LOCALMSPID=Org1MSP
       - CORE_PEER_ID=peer0.org1.testbed.local
       - CORE_PEER_ADDRESS=peer0.org1.testbed.local:7051

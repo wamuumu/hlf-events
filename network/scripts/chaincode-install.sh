@@ -14,8 +14,8 @@ fi
 # Verify the identity of the caller
 verify_identity ${ORG_DOMAIN}
 
-# Calculate the package ID for the chaincode (INFO only)
-calculate_package_id
+# Resolve the sequence number for the chaincode
+resolveSequence
 
 # Install the chaincode
 install_chaincode ${ORG_DOMAIN}

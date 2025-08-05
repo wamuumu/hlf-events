@@ -1,6 +1,7 @@
 #!/bin/bash
 
 . network-utils.sh
+. ids-utils.sh
 
 UPDATE_TRANSACTION_FILE=$1
 ORG_DOMAIN=$2
@@ -22,6 +23,9 @@ if [ -z "${ORG_DOMAIN}" ]; then
     echo "Error: Organization domain is not specified."
     exit 1
 fi
+
+# Verify the identity of the caller
+verify_identity ${ORG_DOMAIN}
 
 # Commit the update transaction to the channel
 commit_update_transaction ${UPDATE_TRANSACTION_FILE} ${ORG_DOMAIN}
