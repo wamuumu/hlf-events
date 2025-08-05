@@ -85,7 +85,8 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 # 6. The new organization 4 needs to join the channel and install the chaincode
 ./network-join-organization.sh "org4.testbed.local" # TODO: set identity as environment variable
 
-# 7. Set the anchor peer for organization 4 [Optional, but recommended to avoid issues]
+# 7. Set the anchor peer for organization 4 [to match the gossip bootstrap address in the compose file]
+./network-set-anchor-peer.sh "org4.testbed.local" 1 # TODO: set identity as environment variable, assuming peer ID 1 is the anchor peer
 
 # 8. Install and approve the chaincode for organization 4
 ./chaincode-install.sh "org4.testbed.local"         # TODO: set identity as environment variable

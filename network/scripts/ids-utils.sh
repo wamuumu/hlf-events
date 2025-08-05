@@ -50,6 +50,7 @@ generate_endpoints() {
 
     # Extract the endpoints from the docker compose file
     local services=$(yq -r '.services | to_entries | .[] | @json' ${docker_compose_file})
+    local genesis_orgs=$(yq -r '.Organizations' "${NETWORK_CTX_PATH}/configtx.yaml")
 
     while IFS= read -r service; do
 
@@ -67,12 +68,23 @@ generate_endpoints() {
             PEER_LISTEN_PORT="${DEFAULT_ENDPOINT}:${PEER_GENERAL_LISTEN_PORT}"
             PEER_LOCAL_MSPID=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_LOCALMSPID=")) | sub("CORE_PEER_LOCALMSPID="; "")')
 
+            # Check if the peer is an anchor peer
+            local is_anchor=false
+            while read -r org; do
+                anchor=$(echo "$org" | jq -r --arg host "$PEER_HOSTNAME" '.AnchorPeers | .[]? | select(.Host == $host)')
+                if [[ -n "$anchor" ]]; then
+                    is_anchor=true
+                    break
+                fi
+            done < <(echo "$genesis_orgs" | jq -c '.[]')
+
             jq \
                 --arg peerId "$service_id" \
                 --arg peerHost "$PEER_HOSTNAME" \
                 --arg listenPort "$PEER_LISTEN_PORT" \
                 --arg localMspId "$PEER_LOCAL_MSPID" \
-                '.[$peerId] = {hostname: $peerHost, address: $listenPort, localMspId: $localMspId}' \
+                --arg is_anchor "$is_anchor" \
+                '.[$peerId] = {hostname: $peerHost, address: $listenPort, localMspId: $localMspId, is_anchor: $is_anchor}' \
                 "${json_file}" > "${json_file}.tmp" && mv "${json_file}.tmp" "${json_file}"
         
         elif [[ "$service_type" == "orderer" ]]; then

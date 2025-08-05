@@ -19,11 +19,9 @@ fetch_channel_config ${ORG_DOMAIN}
 
 # Extract information from the organization definition
 ORG_NAME=$(yq -r '.Organizations[0].Name' ${ORG_CONFIGTX_FILE})
-ORG_MSP_ID=$(yq -r '.Organizations[0].ID' ${ORG_CONFIGTX_FILE})
-TARGET_DIR=$(yq -r '.Organizations[0].MSPDir' ${ORG_CONFIGTX_FILE})
 
 # Add the new organization to the config
-jq -s --arg org_msp "${ORG_MSP_ID}" '.[0] * {"channel_group":{"groups":{"Application":{"groups": {($org_msp):.[1]}}}}}' ${CURRENT} ${DEFINITION_FILE} > ${MODIFIED}
+jq -s --arg org_msp "${ORG_NAME}" '.[0] * {"channel_group":{"groups":{"Application":{"groups": {($org_msp):.[1]}}}}}' ${CURRENT} ${DEFINITION_FILE} > ${MODIFIED}
 
 # Create the update transaction
 create_update_transaction ${ORG_NAME}

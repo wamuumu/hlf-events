@@ -193,29 +193,55 @@ commit_update_transaction() {
     fi
 }
 
-# set_anchor_peer() {
+set_anchor_peer() {
 
-#     # Fetch the current channel configuration to add the anchor peer
-#     fetch_channel_config ${ORG_ID}
+    local org_domain=$1
+    local peer_id=$2
+    local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
 
-#     # Set the first peer as the anchor peer
-#     ANCHOR_PEER=$(jq -r ".\"$ORG_ID\".peers[0].listenAddress" ${ORGANIZATIONS_JSON_FILE})
-#     PEER_HOST=$(echo $ANCHOR_PEER | cut -d: -f1)
-#     PEER_PORT=$(echo $ANCHOR_PEER | cut -d: -f2)
-#     jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'${PEER_HOST}'","port": '${PEER_PORT}'}]},"version": "0"}}' ${NETWORK_CHN_PATH}/config.json > ${NETWORK_CHN_PATH}/modified_config.json
+    if [ ! -f "${endpoints_file}" ]; then
+        echo "Error: Endpoints file not found for organization '${org_domain}'."
+        exit 1
+    fi
 
-#     # Create the anchor peer update transaction
-#     create_update_transaction
+    local peer=$(jq -r ".\"${peer_id}\"" ${endpoints_file})
 
-#     peer channel update \
-#         -f ${OUTPUT} \
-#         -c ${NETWORK_CHN_NAME} \
-#         -o ${ORDERER_ADDRESS} \
-#         --ordererTLSHostnameOverride ${ORDERER_HOST} \
-#         --tls \
-#         --cafile ${ORDERER_ADMIN_TLS_CA}
+    if [ -z "${peer}" ]; then
+        echo "Error: Peer '${peer_id}' not found in endpoints file for organization '${org_domain}'."
+        exit 1
+    fi
+
+    # Fetch the current channel configuration to add the anchor peer
+    fetch_channel_config ${org_domain}
+
+    # Set the first peer as the anchor peer
+    PEER_HOSTNAME=$(echo $peer | jq -r '.hostname')
+    PEER_PORT=$(echo $peer | jq -r '.address | split(":") | .[1]')
+    PEER_MSPID=$(echo $peer | jq -r '.localMspId')
+    ORG_NAME=$(echo $peer | jq -r '.localMspId | split("MSP") | .[0]')
+
+    if [ $PEER_MSPID != $CORE_PEER_LOCALMSPID ]; then
+        echo "Error: The peer's MSP ID does not match the current peer's MSP ID."
+        exit 1
+    fi
+
+    jq '.channel_group.groups.Application.groups.'${ORG_NAME}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'${PEER_HOSTNAME}'","port": '${PEER_PORT}'}]},"version": "0"}}' ${CURRENT} > ${MODIFIED}
+
+    # Create the anchor peer update transaction
+    create_update_transaction ${ORG_NAME}
+
+    peer channel update \
+        -f ${NETWORK_CHN_PATH}/${ORG_NAME,,}_update_in_envelope.pb \
+        -c ${NETWORK_CHN_NAME} \
+        -o ${ORDERER_ADDRESS} \
+        --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
+        --tls \
+        --cafile ${ORDERER_TLS_CA}
     
-#     # Remove all the intermediary files, except for the genesis.block
-#     rm ${NETWORK_CHN_PATH}/*.json
-#     rm ${NETWORK_CHN_PATH}/*.pb
-# }
+    # Update the endpoints file, by setting anchor=true in the peer
+    jq --arg peer_id "${peer_id}" '.[$peer_id].is_anchor = true' "${endpoints_file}" > "${endpoints_file}.tmp" && mv "${endpoints_file}.tmp" "${endpoints_file}"
+    
+    # Remove all the intermediary files, except for the genesis.block
+    rm ${NETWORK_CHN_PATH}/*.json
+    rm ${NETWORK_CHN_PATH}/*.pb
+}
