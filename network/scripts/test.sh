@@ -55,8 +55,9 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 # Commit the chaincode definition to the channel (only once)
 ./chaincode-commit.sh "org1.testbed.local" # TODO: set identity as environment variable
 
-# Test the chaincode invocation
+# Test the chaincode functions
 ./chaincode-invoke.sh "org1.testbed.local" 1  # TODO: set identity as environment variable
+./chaincode-query.sh "org1.testbed.local" 1  # TODO: set identity as environment variable
 
 sleep 5
 

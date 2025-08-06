@@ -120,6 +120,21 @@ invoke_chaincode() {
         -c "$JSON_PAYLOAD"
 }
 
-# query_chaincode() {
-#     # TODO: implement
-# }
+query_chaincode() {
+    local org_domain=$1
+    local peer_id=$2
+
+    PID="pid_test_${org_domain}"
+    JSON_PAYLOAD="{\"Args\":[\"ReadResource\",\"$PID\"]}"
+    
+    set_orderer ${DEFAULT_ORD}
+    set_peer ${org_domain} ${peer_id}
+    peer chaincode query \
+        -C $NETWORK_CHN_NAME \
+        -n $CC_NAME \
+        --tls \
+        --cafile $ORDERER_TLS_CA \
+        --peerAddresses "${CORE_PEER_ADDRESS}" \
+        --tlsRootCertFiles "${CORE_PEER_TLS_ROOTCERT_FILE}" \
+        -c "$JSON_PAYLOAD"
+}
