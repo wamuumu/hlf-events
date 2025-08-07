@@ -58,7 +58,7 @@ git clone https://github.com/your-username/hlf-events.git
 cd hlf-events/network
 ```
 
-Make sure you have all prerequisites installed before proceeding with the network  setup.
+Make sure you have all prerequisites installed before proceeding with the network setup.
 
 ### Initial configuration
 Configure the environment according to your specific requirements by editing the `network.config` file. This configuration file contains all the necessary variables for the network configuration, including the Hyperledger Fabric version being used, the default identities and the chaincode parameters.
@@ -69,13 +69,23 @@ The initial setup might be a little tricky, since it requires strict cooperation
 
 **NOTES**
 - All the scripts are path sensitive, so navigate to the `scripts/` folder and execute them from it.
+
+```bash
+cd network/scripts
+```
+
 - As of now, identities must be specified as parameters (i.e. organization and orderer domains), due to the limitations of executing the entire testbed in a single host environment. In production, this will be removed and replaced instead with the ones defined in the `network.config`.
+
+Before starting, ensure that Hyperledger Fabric binaries (i.e. `bin/` folder) and required libraries (e.g. `yq` and `jq`) are available. If not, just run the following command to download them:
+
+```bash
+./install-requirements.sh
+```
 
 **1. Package the chaincode (admin only)**
 After defining the chaincode, in order to be installed and executed by all the peers of the network, in need to be packaged as a .tar.gz file. This can be done with the following commands:
 
 ```bash
-cd network/scripts
 ./chaincode-package.sh
 ```
 
