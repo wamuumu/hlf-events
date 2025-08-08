@@ -31,3 +31,5 @@ services:
       - 9443:9443
     networks:
       - fabric_net
+    extra_hosts:
+      - "hlf1.disi.unitn.it:192.168.131.186"

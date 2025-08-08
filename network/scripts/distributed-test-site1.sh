@@ -8,33 +8,32 @@
 ./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org1.yaml" --hard 
 # -----------------------
 
-rm -rf ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
-mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
+#rm -rf ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
+#mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 
 # -----------------------
 
 # Setup the crypto material
-./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-ord1.yaml" "${NETWORK_CMP_PATH}/docker-compose-ord1.yaml"
-./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-ord2.yaml" "${NETWORK_CMP_PATH}/docker-compose-ord2.yaml"
-./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-org1.yaml" "${NETWORK_CMP_PATH}/docker-compose-org1.yaml"
+#./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-ord1.yaml" "${NETWORK_CMP_PATH}/docker-compose-ord1.yaml"
+#./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-ord2.yaml" "${NETWORK_CMP_PATH}/docker-compose-ord2.yaml"
+#./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-org1.yaml" "${NETWORK_CMP_PATH}/docker-compose-org1.yaml"
 
 
 # NOTE: This needs to be done only once, when all the crypto material is generated and shared.
 # NOTE: Identities folder must exist and be populated with certificates.
-./network-init.sh
+#./network-init.sh
 
 # Docker setup
 ./docker-up.sh "${NETWORK_CMP_PATH}/docker-compose-ord1.yaml" # Start the orderer 1
 ./docker-up.sh "${NETWORK_CMP_PATH}/docker-compose-ord2.yaml" # Start the orderer 2
 ./docker-up.sh "${NETWORK_CMP_PATH}/docker-compose-org1.yaml" # Start the organization 1
 
-
 # Channel setup
 ./network-join-orderer.sh "orderer.ord1.testbed.local"  # TODO: set identity as environment variable
 ./network-join-orderer.sh "orderer.ord2.testbed.local"  # TODO: set identity as environment variable
 ./network-join-organization.sh "org1.testbed.local"     # TODO: set identity as environment variable
 
-
+sleep 5
 # Install the chaincode on all peers of all organizations
 ./chaincode-install.sh "org1.testbed.local" # TODO: set identity as environment variable
 
@@ -47,7 +46,7 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 # Test the chaincode invocation
 ./chaincode-invoke.sh "org1.testbed.local" 1  # TODO: set identity as environment variable
 
-read -p "Do steps 1 and 2 from the second site and then press Enter to continue..."
+read -p "Do steps 1 and 2 from the second site, make sure to put the new identity json in the correct location, then press Enter to continue..."
 
 
 # Now, organization 4 wants to join the network (the flow of actions is strictly defined and must be followed in this order):
@@ -92,16 +91,16 @@ read -p "Do step 9 and 10 from the second site and then press Enter to continue.
 
 # Test the chaincode invocation with the new organization
 
-read -p "The test is complete, proceed with requestin the removal of the org4, then press enter to approve the removal"
+#read -p "The test is complete, proceed with requesting the removal of the org4 from second site, put the updated config in the correct location, then press enter to approve the removal"
 # Remove the new organization 4 from the network
 
 # Approve the removal of organization 4 from the channel
-./network-approve-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
+#./network-approve-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
 
 # Commit the removal of organization 4 from the channel
-./network-commit-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
+#./network-commit-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
 
-read -p "The removal request is committed, org4 can now leave the network..."
+#read -p "The removal request is committed, org4 can now leave the network..."
 # Remove the organization 4 crypto material and public identity
 
 # Stop the organization 4 containers
