@@ -9,10 +9,10 @@ read -p "Make sure to cpy the crypto/identities material from the network to the
 
 
 # 1. Credentials and public identity creation
-./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-org4.yaml" "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" # Done by organization 4
+#./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-org4.yaml" "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" # Done by organization 4
 
 # 2. Start the containers for organization 4
-./docker-up.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" # Start the containers for organization 4
+#./docker-up.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" # Start the containers for organization 4
 
 read -p "Proceed on main site with join request"
 
@@ -37,27 +37,28 @@ read -p "Approve chaincode from main site"
 ./chaincode-approve.sh "org4.testbed.local"          # TODO: set identity as environment variable
 
 # 10. Commit the chaincode to include the new organization in the endorsement policy
-./chaincode-commit.sh "org1.testbed.local"           # TODO: set identity as environment variable
+./chaincode-commit.sh "org4.testbed.local"           # TODO: set identity as environment variable
 
 # Test the chaincode invocation with the new organization
 ./chaincode-invoke.sh "org4.testbed.local" 1         # TODO: set identity as environment variable
 
-read -p "Press enter to request to leave the network"
+#read -p "Press enter to request to leave the network"
 
 # Remove the new organization 4 from the network
-./network-leave-request.sh "${NETWORK_CTX_PATH}/org4/configtx.yaml" "org4.testbed.local" # TODO: set identity as environment variable
+#./network-leave-request.sh "${NETWORK_CTX_PATH}/org4/configtx.yaml" "org4.testbed.local" # TODO: set identity as environment variable
 
 # Approve the removal of organization 4 from the channel
 
 # Commit the removal of organization 4 from the channel
 
-read -p "Press enter to leave the network"
+#read -p "Press enter to leave the network"
 # Remove the organization 4 crypto material and public identity
-./network-leave-organization.sh "org4.testbed.local" --hard     # TODO: set identity as environment variable
+#./network-leave-organization.sh "org4.testbed.local" --hard     # TODO: set identity as environment variable
 
 # Stop the organization 4 containers
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml"
+#./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml"
 
+read -p "Press enter to close the network"
 # ---- For test only ----
 ./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" --hard
 # -----------------------
