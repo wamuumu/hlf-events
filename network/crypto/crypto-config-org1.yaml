@@ -6,5 +6,6 @@ PeerOrgs:
       Count: 1 # Number of peers per organization
       SANS:
         - localhost
+        - hlf1.disi.unitn.it
     Users:
       Count: 3 # Number of users (excluding admin) per organization

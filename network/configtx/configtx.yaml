@@ -53,48 +53,6 @@ Organizations:
     AnchorPeers:
       - Host: peer0.org1.testbed.local #must be properly assigned through DNS (In docker compose through container name)
         Port: 7051
-  
-  - &Org2
-    Name: Org2
-    ID: Org2MSP
-    MSPDir: ../identities/peerOrganizations/org2.testbed.local/msp
-    Policies:
-      Readers:
-        Type: Signature
-        Rule: "OR('Org2MSP.admin', 'Org2MSP.peer', 'Org2MSP.client')"
-      Writers:
-        Type: Signature
-        Rule: "OR('Org2MSP.admin', 'Org2MSP.client')"
-      Admins:
-        Type: Signature
-        Rule: "OR('Org2MSP.admin')"
-      Endorsement:
-        Type: Signature
-        Rule: "OR('Org2MSP.peer')"
-    AnchorPeers:
-      - Host: peer0.org2.testbed.local #must be properly assigned through DNS (In docker compose through container name)
-        Port: 8051
-  
-  - &Org3
-    Name: Org3
-    ID: Org3MSP
-    MSPDir: ../identities/peerOrganizations/org3.testbed.local/msp
-    Policies:
-      Readers:
-        Type: Signature
-        Rule: "OR('Org3MSP.admin', 'Org3MSP.peer', 'Org3MSP.client')"
-      Writers:
-        Type: Signature
-        Rule: "OR('Org3MSP.admin', 'Org3MSP.client')"
-      Admins:
-        Type: Signature
-        Rule: "OR('Org3MSP.admin')"
-      Endorsement:
-        Type: Signature
-        Rule: "OR('Org3MSP.peer')"
-    AnchorPeers:
-      - Host: peer0.org3.testbed.local #must be properly assigned through DNS (In docker compose through container name)
-        Port: 9051
 
 Capabilities: #all defined at v2 since we don't need retrocompatibility and want to empoy newest features
   Channel: &ChannelCapabilities
@@ -197,7 +155,5 @@ Profiles:
       <<: *ApplicationDefaults
       Organizations:
         - *Org1
-        - *Org2
-        - *Org3
       Capabilities: *ApplicationCapabilities
     Consortium: ConsortiumName # Assign a name ?

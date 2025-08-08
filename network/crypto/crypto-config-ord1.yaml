@@ -6,3 +6,4 @@ OrdererOrgs:
       - Hostname: orderer
         SANS:
           - localhost # Alternative name for the orderer
+          - hlf1.disi.unitn.it
