@@ -14,7 +14,7 @@ Organizations:
         Type: Signature
         Rule: "OR('Ord1MSP.admin')"
     OrdererEndpoints:
-      - orderer.ord1.testbed.local:7050
+      - hlf1.disi.unitn.it:7050
   
   - &Ord2
     Name: Ord2
@@ -31,7 +31,7 @@ Organizations:
         Type: Signature
         Rule: "OR('Ord2MSP.admin')"
     OrdererEndpoints:
-      - orderer.ord2.testbed.local:8050
+      - hlf1.disi.unitn.it:8050
   
   - &Org1
     Name: Org1
@@ -51,7 +51,7 @@ Organizations:
         Type: Signature
         Rule: "OR('Org1MSP.peer')"
     AnchorPeers:
-      - Host: peer0.org1.testbed.local #must be properly assigned through DNS (In docker compose through container name)
+      - Host: hlf1.disi.unitn.it #must be properly assigned through DNS (In docker compose through container name)
         Port: 7051
 
 Capabilities: #all defined at v2 since we don't need retrocompatibility and want to empoy newest features
@@ -91,8 +91,8 @@ Orderer: &OrdererDefaults
   OrdererType: etcdraft
   
   Addresses:
-    - orderer.ord1.testbed.local:7050
-    - orderer.ord2.testbed.local:8050
+    - hlf1.disi.unitn.it:7050
+    - hlf1.disi.unitn.it:8050
 
   # Batch configuration: settings for batch time and size
   BatchTimeout: 2s
@@ -139,11 +139,11 @@ Profiles:
       <<: *OrdererDefaults
       EtcdRaft:
         Consenters:
-          - Host: orderer.ord1.testbed.local
+          - Host: hlf1.disi.unitn.it
             Port: 7050
             ClientTLSCert: ../identities/ordererOrganizations/ord1.testbed.local/tls/server.crt
             ServerTLSCert: ../identities/ordererOrganizations/ord1.testbed.local/tls/server.crt
-          - Host: orderer.ord2.testbed.local
+          - Host: hlf1.disi.unitn.it
             Port: 8050
             ClientTLSCert: ../identities/ordererOrganizations/ord2.testbed.local/tls/server.crt
             ServerTLSCert: ../identities/ordererOrganizations/ord2.testbed.local/tls/server.crt
