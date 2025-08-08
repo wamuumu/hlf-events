@@ -37,7 +37,7 @@ read -p "Approve chaincode from main site"
 ./chaincode-approve.sh "org4.testbed.local"          # TODO: set identity as environment variable
 
 # 10. Commit the chaincode to include the new organization in the endorsement policy
-./chaincode-commit.sh "org1.testbed.local"           # TODO: set identity as environment variable
+./chaincode-commit.sh "org4.testbed.local"           # TODO: set identity as environment variable
 
 # Test the chaincode invocation with the new organization
 ./chaincode-invoke.sh "org4.testbed.local" 1         # TODO: set identity as environment variable
