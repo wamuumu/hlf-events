@@ -14,11 +14,12 @@ BENCHMARK_FILE=$1
 BENCHMARK_NAME=$(basename "$BENCHMARK_FILE" .yaml)
 mkdir -p results/$BENCHMARK_NAME
 
-CONTAINER_ID=$(docker compose -f docker-compose-caliper.yaml run caliper \
+CONTAINER_ID=$(docker compose -f docker-compose-caliper.yaml run -d caliper \
     launch manager \
     --caliper-networkconfig networks/network-config-minimal.yaml \
     --caliper-benchconfig $BENCHMARK_FILE)
 
 docker wait $CONTAINER_ID
-docker cp $CONTAINER_ID:/hyperledger/caliper/report.html results/$BENCHMARK_NAME/report.html
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+docker cp $CONTAINER_ID:/hyperledger/caliper/report.html results/$BENCHMARK_NAME/report_$DATE.html
 docker rm $CONTAINER_ID
