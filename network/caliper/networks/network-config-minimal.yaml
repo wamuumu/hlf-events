@@ -1,0 +1,24 @@
+name: "Minimal Fabric Benchmark Network"
+version: "2.0.0"
+
+caliper:
+  blockchain: fabric
+
+channels:
+  - channelName: mychannel
+    contracts:
+      - id: cc-test
+
+organizations:
+  - name: Org1
+    mspid: Org1MSP
+    identities:
+      certificates:
+        - name: "Admin"
+          clientPrivateKey:
+            path: /hyperledger/caliper/organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/keystore/priv_sk
+          clientSignedCert:
+            path: /hyperledger/caliper/organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/signcerts/Admin@org1.testbed.local-cert.pem
+    connectionProfile:
+      path: /hyperledger/caliper/organizations/peerOrganizations/org1.testbed.local/connection-org1.json
+      discover: true

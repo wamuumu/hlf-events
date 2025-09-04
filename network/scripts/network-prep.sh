@@ -36,6 +36,9 @@ fi
 # Generate the crypto material
 generate_crypto ${CRYPTO_CONFIG_FILE}
 
+# Generate the connection profiles
+generate_ccp ${CRYPTO_CONFIG_FILE} ${DOCKER_COMPOSE_FILE}
+
 # Copy the CA and TLS certificates
 ORG_DIR=$(copy_msp_folder ${CRYPTO_CONFIG_FILE})
 

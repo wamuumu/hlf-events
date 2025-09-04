@@ -1,0 +1,21 @@
+networks:
+  fabric_net:
+    name: fabric_net
+    external: true # Assumes that the network is already created 
+
+services:
+  caliper:
+    image: hyperledger/caliper:0.6.0
+    container_name: caliper
+    environment:
+      - CALIPER_WORKSPACE=/hyperledger/caliper
+      - CALIPER_BIND_CWD=/hyperledger/caliper
+      - CALIPER_BIND_SUT=fabric:${FABRIC_MAJOR_VERSION}
+    volumes:
+      - ./benchmarks:/hyperledger/caliper/benchmarks
+      - ./networks:/hyperledger/caliper/networks
+      - ./results:/hyperledger/caliper/results
+      - ./workloads:/hyperledger/caliper/workloads
+      - ../organizations:/hyperledger/caliper/organizations
+    networks:
+      - fabric_net

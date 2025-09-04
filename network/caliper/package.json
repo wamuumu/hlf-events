@@ -1,0 +1,11 @@
+{
+  "name": "caliper",
+  "version": "1.0.0",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@hyperledger/caliper-core": "^0.6.0"
+  }
+}

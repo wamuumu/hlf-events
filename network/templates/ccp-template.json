@@ -1,0 +1,21 @@
+{
+    "name": "ccp-${ORG_NAME}",
+    "version": "1.0.0",
+    "client": {
+        "organization": "${ORG_NAME}",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                }
+            }
+        }
+    },
+    "organizations": {
+        "${ORG_NAME}": {
+            "mspid": "${MSPID}",
+            "peers": []
+        }
+    },
+    "peers": {}
+}

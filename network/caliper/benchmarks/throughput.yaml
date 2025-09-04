@@ -1,0 +1,31 @@
+test:
+  name: fabric-throughput
+  description: Measure transaction throughput
+  workers:
+    type: local
+    number: 2
+  rounds:
+    - label: tx-throughput
+      txDuration: 5
+      rateControl:
+        type: fixed-rate # TODO: check other types (e.g. 'fixed-load', 'linear')
+        opts:
+          tps: 10
+      workload:
+        module: workloads/create-resource.js
+        arguments:
+          contractName: cc-test
+    - label: query-throughput
+      txDuration: 5
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: workloads/read-resource.js
+        arguments:
+          contractName: cc-test
+
+monitor:
+  type: [docker, process]
+  interval: 5

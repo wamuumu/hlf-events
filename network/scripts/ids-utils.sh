@@ -11,7 +11,6 @@ copy_msp_folder() {
 
     local org=$(yq -r '.PeerOrgs' ${crypto_config_file})
     local ord=$(yq -r '.OrdererOrgs' ${crypto_config_file})
-    [[ "$org" == "null" ]] && type="ordererOrganizations" || type="peerOrganizations"
 
     if [[ "$org" == "null" ]]; then
         type="ordererOrganizations"
