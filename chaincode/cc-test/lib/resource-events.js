@@ -41,6 +41,30 @@ class ResourceEvents extends Contract {
 		return resourceJSON.toString();
 	}
 
+	// ReadAllResources returns all resources found in the world state.
+	async ReadAllResources(ctx) {
+		const allResults = [];
+		const iterator = await ctx.stub.getStateByRange('', '');
+		let result = await iterator.next();
+		while (!result.done) {
+			const strValue = result.value.value.toString('utf8');
+			let record;
+			try {
+				record = JSON.parse(strValue);
+			} catch (err) {
+				console.log(err);
+				record = strValue;
+			}
+			allResults.push(record);
+			result = await iterator.next();
+		}
+		await iterator.close();
+		const allResultsBuffer = Buffer.from(JSON.stringify(allResults));
+		ctx.stub.setEvent('ReadAllResources', allResultsBuffer);
+		return JSON.stringify(allResults);
+	}
+
+	// ResourceExists returns true when resource with given id exists in world state.
 	async ResourceExists(ctx, pid) {
 		const resourceJSON = await ctx.stub.getState(pid);
 		return resourceJSON && resourceJSON.length > 0;

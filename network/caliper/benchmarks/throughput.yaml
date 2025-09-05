@@ -1,30 +1,34 @@
 test:
-  name: fabric-throughput
+  name: Fabric Throughput Benchmark
   description: Measure transaction throughput
   workers:
-    type: local
-    number: 2
+    type: local # Default is 'local', other can be 'docker' or 'kubernetes'
+    number: 10 # Simulate 10 clients concurrently
   rounds:
-    - label: tx-throughput
-      txDuration: 5
-      rateControl:
-        type: fixed-rate # TODO: check other types (e.g. 'fixed-load', 'linear')
-        opts:
-          tps: 10
-      workload:
-        module: workloads/create-resource.js
-        arguments:
-          contractName: cc-test
-    - label: query-throughput
-      txDuration: 5
+    - label: tx-throughput (write)
+      description: High-volume transaction test for maximum TPS
+      txNumber: 5000 # Total number of transactions to issue. Ignored if txDuration is set.
       rateControl:
         type: fixed-rate
         opts:
-          tps: 10
+          tps: 100 # Target transactions per second
       workload:
-        module: workloads/read-resource.js
+        module: workloads/throughput.js
         arguments:
           contractName: cc-test
+          operationType: write
+    - label: query-throughput (read)
+      description: High-volume query test for maximum TPS
+      txNumber: 8000
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 300
+      workload:
+        module: workloads/throughput.js
+        arguments:
+          contractName: cc-test
+          operationType: read
 
 monitor:
   type: [docker, process]
