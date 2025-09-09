@@ -25,7 +25,6 @@ npx caliper launch manager \
     --caliper-fabric-gateway-enabled \
     --caliper-workspace ./ \
     --caliper-bind-cwd ./ \
-    --caliper-sut "fabric@$FABRIC_MAJOR_VERSION" \
     --caliper-bind-sut "fabric:$FABRIC_MAJOR_VERSION" \
     --caliper-networkconfig networks/network-config-minimal.yaml \
     --caliper-benchconfig $BENCHMARK_FILE \
