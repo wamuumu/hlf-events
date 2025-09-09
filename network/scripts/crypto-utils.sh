@@ -18,7 +18,7 @@ generate_ccp() {
     local org=$(yq -r '.PeerOrgs' ${crypto_config_file})
 
     if [ -z "$org" ] || [ "$org" == "null" ]; then
-        echo "Organization not found in the crypto config file."
+        echo "Skipping..."
         return
     fi
 
