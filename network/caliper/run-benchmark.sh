@@ -20,7 +20,7 @@ fi
 BENCHMARK_NAME=$(basename "$BENCHMARK_FILE" .yaml)
 BENCHMARK_DATE=$(date +"%Y-%m-%d_%H-%M-%S")
 
-npx caliper launch manager \
+(npx caliper launch manager \
     --caliper-flow-only-test \
     --caliper-fabric-gateway-enabled \
     --caliper-workspace ./ \
@@ -29,3 +29,6 @@ npx caliper launch manager \
     --caliper-networkconfig networks/network-config-minimal.yaml \
     --caliper-benchconfig $BENCHMARK_FILE \
     --caliper-report-path ./results/${BENCHMARK_NAME}_report_${BENCHMARK_DATE}.html
+); stty sane
+
+echo "Benchmark report generated at ./results/${BENCHMARK_NAME}_report_${BENCHMARK_DATE}.html"

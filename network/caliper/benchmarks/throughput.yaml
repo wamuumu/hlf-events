@@ -1,6 +1,7 @@
 test:
   name: Fabric Throughput Benchmark
   description: Measure transaction throughput (TPS) in both write and read scenarios
+  sut: Hyperledger Fabric 2.5
   workers:
     type: local # Default is 'local', other can be 'docker' or 'kubernetes'
     number: 1 # Simulate 1 client concurrently
@@ -29,7 +30,3 @@ test:
         arguments:
           contractName: cc-test
           operationType: read
-
-monitor:
-  type: [docker, process]
-  interval: 5
