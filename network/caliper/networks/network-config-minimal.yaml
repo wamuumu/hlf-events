@@ -16,9 +16,9 @@ organizations:
       certificates:
         - name: "Admin"
           clientPrivateKey:
-            path: /hyperledger/caliper/organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/keystore/priv_sk
+            path: ../organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/keystore/priv_sk
           clientSignedCert:
-            path: /hyperledger/caliper/organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/signcerts/Admin@org1.testbed.local-cert.pem
+            path: ../organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/signcerts/Admin@org1.testbed.local-cert.pem
     connectionProfile:
-      path: /hyperledger/caliper/organizations/peerOrganizations/org1.testbed.local/connection-org1.json
+      path: ../organizations/peerOrganizations/org1.testbed.local/connection-org1.json
       discover: true

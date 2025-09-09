@@ -36,8 +36,8 @@ generate_ccp() {
         peer_hostname=$(echo "$service" | jq -r '.key')
         peer_local_mspid=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_LOCALMSPID=")) | sub("CORE_PEER_LOCALMSPID="; "")')
         peer_listen_port=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_ADDRESS=")) | sub("CORE_PEER_ADDRESS="; "") | split(":") | .[-1]')
-        peer_default_endpoint="${peer_hostname}:${peer_listen_port}"
-        peer_cert=organizations/peerOrganizations/${domain}/tlsca/tlsca.${domain}-cert.pem
+        peer_default_endpoint="${DEFAULT_ENDPOINT}:${peer_listen_port}"
+        peer_cert=${NETWORK_ORG_PATH}/peerOrganizations/${domain}/tlsca/tlsca.${domain}-cert.pem
 
         # Add peer_hostname to organizations->$name->peers array
         jq --arg peer "$peer_hostname" '.organizations."'"$name"'".peers += [$peer]' $org_ccp_file >> $org_ccp_file.tmp && mv $org_ccp_file.tmp $org_ccp_file
