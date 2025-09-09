@@ -49,3 +49,6 @@ echo "Chaincode version: ${CC_VERSION}"
 
 peer lifecycle chaincode package ${CC_PKG_PATH} --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANG} --label ${CC_NAME}_${CC_VERSION}
 echo "Chaincode packaged successfully at ${CC_PKG_PATH}"
+
+# Remove all the dev-peer* images (since they are no longer needed)
+docker images | grep "dev-peer" | awk '{print $3}' | xargs -r docker rmi -f
