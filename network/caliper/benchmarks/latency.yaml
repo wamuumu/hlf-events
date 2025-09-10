@@ -1,0 +1,30 @@
+test:
+  name: Fabric Latency Benchmark
+  description: Measure transaction latency (in seconds) for both write and read scenarios
+  sut: Hyperledger Fabric 2.5
+  workers:
+    type: local # Default is 'local', other can be 'docker' or 'kubernetes'
+    number: 1 # Simulate 1 client concurrently
+  rounds:
+    - label: tx-latency (write)
+      description: Measure latency for write transactions
+      txNumber: 100 # Total number of transactions to issue
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 1 # Low rate to measure latency accurately
+      workload:
+        module: workloads/tx-workload.js
+        arguments:
+          contractName: cc-test
+    - label: query-latency (read)
+      description: Measure latency for read transactions
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 1
+      workload:
+        module: workloads/query-workload.js
+        arguments:
+          contractName: cc-test

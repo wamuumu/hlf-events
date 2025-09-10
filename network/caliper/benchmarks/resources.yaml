@@ -1,0 +1,43 @@
+test:
+  name: Fabric Resource Consumption Benchmark
+  description: Measure resource consumption for both write and read scenarios
+  sut: Hyperledger Fabric 2.5
+  workers:
+    type: local # Default is 'local', other can be 'docker' or 'kubernetes'
+    number: 2 # Simulate 2 clients concurrently
+  rounds:
+    - label: tx-resource (write)
+      description: Measure resource consumption for write transactions
+      txDuration: 5 # Run for 5 seconds
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 100 # Target transactions per second
+      workload:
+        module: workloads/tx-workload.js
+        arguments:
+          contractName: cc-test
+    - label: query-resource (read)
+      description: Measure resource consumption for read transactions
+      txDuration: 5 # Run for 5 seconds
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 200 # Higher TPS for read operations
+      workload:
+        module: workloads/query-workload.js
+        arguments:
+          contractName: cc-test
+
+monitors:
+  resource:
+  - module: docker
+    options:
+      interval: 5
+      containers:
+        - all
+      charting:
+        bar:
+          metrics: [Memory(avg), CPU%(avg)] # Memory(max), Memory(avg), CPU%(max), CPU%(avg), Traffic In, Traffic Out, Disc Read, Disc Write
+        polar:
+          metrics: [all]

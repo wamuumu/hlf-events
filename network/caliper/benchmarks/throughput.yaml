@@ -1,32 +1,30 @@
 test:
   name: Fabric Throughput Benchmark
-  description: Measure transaction throughput (TPS) in both write and read scenarios
+  description: Measure transaction throughput (TPS) for both write and read scenarios
   sut: Hyperledger Fabric 2.5
   workers:
     type: local # Default is 'local', other can be 'docker' or 'kubernetes'
-    number: 1 # Simulate 1 client concurrently
+    number: 4 # Simulate 4 clients concurrently
   rounds:
     - label: tx-throughput (write)
       description: High-volume transaction test for maximum TPS
-      txNumber: 1000 # Total number of transactions to issue. Could be set also txDuration.
+      txDuration: 60 # Run for 60 seconds
       rateControl:
         type: fixed-rate
         opts:
           tps: 100 # Target transactions per second
       workload:
-        module: workloads/throughput.js
+        module: workloads/tx-workload.js
         arguments:
           contractName: cc-test
-          operationType: write
     - label: query-throughput (read)
       description: High-volume query test for maximum TPS
-      txNumber: 2000
+      txDuration: 60 # Run for 60 seconds
       rateControl:
         type: fixed-rate
         opts:
-          tps: 200
+          tps: 200 # Higher TPS for read operations
       workload:
-        module: workloads/throughput.js
+        module: workloads/query-workload.js
         arguments:
           contractName: cc-test
-          operationType: read
