@@ -8,7 +8,7 @@ test:
   rounds:
     - label: tx-resource (write)
       description: Measure resource consumption for write transactions
-      txDuration: 5 # Run for 5 seconds
+      txDuration: 60 # Run for 60 seconds
       rateControl:
         type: fixed-rate
         opts:
@@ -19,7 +19,7 @@ test:
           contractName: cc-test
     - label: query-resource (read)
       description: Measure resource consumption for read transactions
-      txDuration: 5 # Run for 5 seconds
+      txDuration: 60 # Run for 60 seconds
       rateControl:
         type: fixed-rate
         opts:
@@ -35,9 +35,8 @@ monitors:
     options:
       interval: 5
       containers:
-        - all
+        - /peer0.org1.testbed.local
+        - /orderer.ord1.testbed.local
       charting:
         bar:
-          metrics: [Memory(avg), CPU%(avg)] # Memory(max), Memory(avg), CPU%(max), CPU%(avg), Traffic In, Traffic Out, Disc Read, Disc Write
-        polar:
-          metrics: [all]
+          metrics: [all] # Memory(max), Memory(avg), CPU%(max), CPU%(avg), Traffic In, Traffic Out, Disc Read, Disc Write
