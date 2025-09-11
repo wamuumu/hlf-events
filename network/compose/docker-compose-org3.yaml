@@ -1,4 +1,6 @@
 volumes:
+  peer0_org3_etc_fabric:
+  peer0_org3_var_fabric:
   peer0_org3_data:
 
 networks:
@@ -32,6 +34,8 @@ services:
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
       - ../organizations/peerOrganizations/org3.testbed.local/peers/peer0.org3.testbed.local/msp:/etc/hyperledger/fabric/msp
       - ../organizations/peerOrganizations/org3.testbed.local/peers/peer0.org3.testbed.local/tls:/etc/hyperledger/fabric/tls
+      - peer0_org3_etc_fabric:/etc/hyperledger/fabric
+      - peer0_org3_var_fabric:/var/hyperledger
       - peer0_org3_data:/var/hyperledger/production
     ports:
       - 9051:9051
