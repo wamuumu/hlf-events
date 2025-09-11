@@ -10,11 +10,11 @@ channels:
       - id: cc-test
 
 organizations:
-  - name: Org1
-    mspid: Org1MSP
+  - mspid: Org1MSP
     identities:
       certificates:
-        - name: "Admin"
+        - name: Admin
+          admin: true
           clientPrivateKey:
             path: ../organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/keystore/priv_sk
           clientSignedCert:

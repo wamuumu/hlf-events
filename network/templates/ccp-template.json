@@ -14,8 +14,21 @@
     "organizations": {
         "${ORG_NAME}": {
             "mspid": "${MSPID}",
-            "peers": []
+            "peers": [
+                "${PEER_HOSTNAME}"
+            ]
         }
     },
-    "peers": {}
+    "peers": {
+        "${PEER_HOSTNAME}": {
+            "url": "grpcs://${ENDPOINT}",
+            "tlsCACerts": {
+                "path": "${ORG_CERT_PATH}"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "${PEER_HOSTNAME}",
+                "hostnameOverride": "${PEER_HOSTNAME}"
+            }
+        }
+    }
 }

@@ -28,7 +28,7 @@ set_orderer() {
         exit 1
     fi
 
-    ORDERER_DOMAIN=$(echo "$orderer" | jq -r '.domain')
+    export ORDERER_DOMAIN=$(echo "$orderer" | jq -r '.domain')
     export ORDERER_HOSTNAME=$(echo "$orderer" | jq -r '.hostname')
     export ORDERER_ADDRESS=$(echo "$orderer" | jq -r '.address')
     export ORDERER_ADMIN_ADDRESS=$(echo "$orderer" | jq -r '.adminAddress')
@@ -65,8 +65,8 @@ set_peer() {
         exit 1
     fi
 
-    PEER_HOSTNAME=$(echo "$peer" | jq -r '.hostname')
-    PEER_DOMAIN=$(echo "$PEER_HOSTNAME" | cut -d'.' -f2-)
+    export PEER_HOSTNAME=$(echo "$peer" | jq -r '.hostname')
+    export PEER_DOMAIN=$(echo "$PEER_HOSTNAME" | cut -d'.' -f2-)
     export CORE_PEER_TLS_ENABLED=true
     export CORE_PEER_LOCALMSPID=$(echo "$peer" | jq -r '.localMspId')
     export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.address')

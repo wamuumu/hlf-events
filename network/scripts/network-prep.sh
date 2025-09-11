@@ -36,13 +36,13 @@ fi
 # Generate the crypto material
 generate_crypto ${CRYPTO_CONFIG_FILE}
 
-# Generate the connection profiles
-generate_ccp ${CRYPTO_CONFIG_FILE} ${DOCKER_COMPOSE_FILE}
-
 # Copy the CA and TLS certificates
 ORG_DIR=$(copy_msp_folder ${CRYPTO_CONFIG_FILE})
 
 # Generate the endpoints definition
 generate_endpoints ${ORG_DIR} ${DOCKER_COMPOSE_FILE}
+
+# Generate the common connection profile
+generate_ccp ${CRYPTO_CONFIG_FILE}
 
 echo "Network identity generated successfully at ${ORG_DIR}"

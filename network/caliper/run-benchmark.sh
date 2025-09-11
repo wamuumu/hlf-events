@@ -5,7 +5,18 @@
 # Extract major version number from FABRIC_VERSION
 export FABRIC_MAJOR_VERSION=$(echo $FABRIC_VERSION | cut -d. -f1,2)
 
-BENCHMARK_FILE=$1
+NETWORK_CONFIG_FILE=$1
+BENCHMARK_FILE=$2
+
+if [ -z "$NETWORK_CONFIG_FILE" ]; then
+    echo "Please provide a network configuration file."
+    exit 1
+fi
+
+if [ ! -f "$NETWORK_CONFIG_FILE" ]; then
+    echo "Network configuration file '$NETWORK_CONFIG_FILE' does not exist."
+    exit 1
+fi
 
 if [ -z "$BENCHMARK_FILE" ]; then
     echo "Please provide a benchmark file."
@@ -26,7 +37,7 @@ npx caliper launch manager \
     --caliper-workspace ./ \
     --caliper-bind-cwd ./ \
     --caliper-bind-sut "fabric:$FABRIC_MAJOR_VERSION" \
-    --caliper-networkconfig networks/network-config-minimal.yaml \
+    --caliper-networkconfig $NETWORK_CONFIG_FILE \
     --caliper-benchconfig $BENCHMARK_FILE \
     --caliper-report-path ./results/${BENCHMARK_NAME}_report_${BENCHMARK_DATE}.html
 
