@@ -1,7 +1,6 @@
 test:
   name: Fabric Resource Consumption Benchmark
   description: Measure resource consumption for both write and read scenarios
-  sut: Hyperledger Fabric 2.5
   workers:
     type: local # Default is 'local', other can be 'docker' or 'kubernetes'
     number: 2 # Simulate 2 clients concurrently
@@ -31,12 +30,12 @@ test:
 
 monitors:
   resource:
-  - module: docker
-    options:
-      interval: 5
-      containers:
-        - /peer0.org1.testbed.local
-        - /orderer.ord1.testbed.local
-      charting:
-        bar:
-          metrics: [all] # Memory(max), Memory(avg), CPU%(max), CPU%(avg), Traffic In, Traffic Out, Disc Read, Disc Write
+    - module: docker
+      options:
+        interval: 5
+        containers:
+          - /peer0.org1.testbed.local
+          - /orderer.ord1.testbed.local
+        charting:
+          bar:
+            metrics: [all] # Memory(max), Memory(avg), CPU%(max), CPU%(avg), Traffic In, Traffic Out, Disc Read, Disc Write

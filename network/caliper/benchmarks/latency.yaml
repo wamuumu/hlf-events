@@ -1,7 +1,6 @@
 test:
   name: Fabric Latency Benchmark
   description: Measure transaction latency (in seconds) for both write and read scenarios
-  sut: Hyperledger Fabric 2.5
   workers:
     type: local # Default is 'local', other can be 'docker' or 'kubernetes'
     number: 1 # Simulate 1 client concurrently

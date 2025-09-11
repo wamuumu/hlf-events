@@ -1,7 +1,6 @@
 test:
   name: Fabric Success Ratio Benchmark
   description: Measure transaction success ratio for both write and read scenarios
-  sut: Hyperledger Fabric 2.5
   workers:
     type: local # Default is 'local', other can be 'docker' or 'kubernetes'
     number: 2 # Simulate 2 clients concurrently
