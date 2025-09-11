@@ -25,19 +25,21 @@ generate_ccp() {
     org=$(echo "$org" | jq -r 'to_entries[0] | .value')
 
     local name=$(echo "$org" | jq -r '.Name')
-    local mspid=$(echo "$org" | jq -r '.Name')MSP
     local domain=$(echo "$org" | jq -r '.Domain')
+    local org_cert="${NETWORK_ORG_PATH}/peerOrganizations/${domain}/tlsca/tlsca.${domain}-cert.pem"
 
     org_ccp_file=${NETWORK_ORG_PATH}/peerOrganizations/${domain}/connection-${name,,}.json
-    echo $(sed -e "s/\${ORG_NAME}/$name/" -e "s/\${MSPID}/$mspid/" ../templates/ccp-template.json) > $org_ccp_file
-
+    
     local services=$(yq -r '.services | to_entries | .[] | @json' ${docker_compose_file})
     while IFS= read -r service; do
-        peer_hostname=$(echo "$service" | jq -r '.key')
         peer_local_mspid=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_LOCALMSPID=")) | sub("CORE_PEER_LOCALMSPID="; "")')
+        if [ ! -f "$org_ccp_file" ]; then
+            echo $(sed -e "s/\${ORG_NAME}/$name/" -e "s/\${MSPID}/$peer_local_mspid/" ../templates/ccp-template.json) > $org_ccp_file
+        fi
+
+        peer_hostname=$(echo "$service" | jq -r '.key')
         peer_listen_port=$(echo "$service" | jq -r '.value.environment[] | select(. | startswith("CORE_PEER_ADDRESS=")) | sub("CORE_PEER_ADDRESS="; "") | split(":") | .[-1]')
         peer_default_endpoint="${DEFAULT_ENDPOINT}:${peer_listen_port}"
-        peer_cert=${NETWORK_ORG_PATH}/peerOrganizations/${domain}/tlsca/tlsca.${domain}-cert.pem
 
         # Add peer_hostname to organizations->$name->peers array
         jq --arg peer "$peer_hostname" '.organizations."'"$name"'".peers += [$peer]' $org_ccp_file >> $org_ccp_file.tmp && mv $org_ccp_file.tmp $org_ccp_file
@@ -45,7 +47,7 @@ generate_ccp() {
         # Add peer details to peers object
         jq --arg peer "$peer_hostname" \
            --arg url "grpcs://$peer_default_endpoint" \
-           --arg pem "$peer_cert" \
+           --arg pem "$org_cert" \
            '.peers += {($peer): {
                "url": $url,
                "tlsCACerts": {
