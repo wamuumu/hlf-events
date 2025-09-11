@@ -1,6 +1,5 @@
 volumes:
-  orderer_ord2_etc_fabric:
-  orderer_ord2_var_fabric:
+  orderer_ord2_conf:
   orderer_ord2_data:
 
 networks:
@@ -26,8 +25,8 @@ services:
       - ../config/orderer.yaml:/etc/hyperledger/fabric/orderer.yaml
       - ../organizations/ordererOrganizations/ord2.testbed.local/orderers/orderer.ord2.testbed.local/msp/:/etc/hyperledger/fabric/msp
       - ../organizations/ordererOrganizations/ord2.testbed.local/orderers/orderer.ord2.testbed.local/tls/:/etc/hyperledger/fabric/tls
-      - orderer_ord2_etc_fabric:/etc/hyperledger/fabric
-      - orderer_ord2_var_fabric:/var/hyperledger
+      - orderer_ord2_conf:/etc/hyperledger/fabric
+      - orderer_ord2_conf:/var/hyperledger
       - orderer_ord2_data:/var/hyperledger/production/orderer
     ports:
       - 8050:8050
