@@ -32,6 +32,23 @@ Organizations:
         Rule: "OR('Ord2MSP.admin')"
     OrdererEndpoints:
       - orderer.ord2.testbed.local:8050
+
+  - &Ord3
+    Name: Ord3
+    ID: Ord3MSP
+    MSPDir: ../identities/ordererOrganizations/ord3.testbed.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Ord3MSP.member')" #member matches any user of the organization
+      Writers:
+        Type: Signature
+        Rule: "OR('Ord3MSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Ord3MSP.admin')"
+    OrdererEndpoints:
+      - orderer.ord3.testbed.local:9050
   
   - &Org1
     Name: Org1
@@ -135,6 +152,7 @@ Orderer: &OrdererDefaults
   Addresses:
     - orderer.ord1.testbed.local:7050
     - orderer.ord2.testbed.local:8050
+    - orderer.ord3.testbed.local:9050
 
   # Batch configuration: settings for batch time and size
   BatchTimeout: 2s
@@ -189,9 +207,14 @@ Profiles:
             Port: 8050
             ClientTLSCert: ../identities/ordererOrganizations/ord2.testbed.local/tls/server.crt
             ServerTLSCert: ../identities/ordererOrganizations/ord2.testbed.local/tls/server.crt
+          - Host: orderer.ord3.testbed.local
+            Port: 9050
+            ClientTLSCert: ../identities/ordererOrganizations/ord3.testbed.local/tls/server.crt
+            ServerTLSCert: ../identities/ordererOrganizations/ord3.testbed.local/tls/server.crt
       Organizations:
         - *Ord1
         - *Ord2
+        - *Ord3
       Capabilities: *OrdererCapabilities
     Application:
       <<: *ApplicationDefaults
