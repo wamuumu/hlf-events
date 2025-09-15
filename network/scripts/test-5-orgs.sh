@@ -10,6 +10,7 @@
 ./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org2.yaml" --hard
 ./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org3.yaml" --hard
 ./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" --hard # Added later on, removed for simplicity to avoid issues
+./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org5.yaml" --hard
 # -----------------------
 
 rm -rf ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
@@ -60,8 +61,8 @@ mkdir -p ${NETWORK_ORG_PATH} ${NETWORK_CHN_PATH} ${NETWORK_IDS_PATH}
 ./chaincode-commit.sh "org1.testbed.local" # TODO: set identity as environment variable
 
 # Test the chaincode functions
-# ./chaincode-invoke.sh "org1.testbed.local" ${DEFAULT_PEER_ID}  # TODO: set identity as environment variable
-# ./chaincode-query.sh "org1.testbed.local" ${DEFAULT_PEER_ID}  # TODO: set identity as environment variable
+# ./chaincode-invoke.sh "org1.testbed.local" 1  # TODO: set identity as environment variable
+# ./chaincode-query.sh "org1.testbed.local" 1  # TODO: set identity as environment variable
 
 sleep 5
 
@@ -98,7 +99,7 @@ sleep 5
 ./network-join-organization.sh "org4.testbed.local" # TODO: set identity as environment variable
 
 # 7. Set the anchor peer for organization 4 [to match the gossip bootstrap address in the compose file]
-./network-set-anchor-peer.sh "org4.testbed.local" ${DEFAULT_PEER_ID} # TODO: set identity as environment variable, assuming peer ID 1 is the anchor peer
+./network-set-anchor-peer.sh "org4.testbed.local" 1 # TODO: set identity as environment variable, assuming peer ID 1 is the anchor peer
 
 # 8. Install and approve the chaincode for organization 4
 ./chaincode-install.sh "org4.testbed.local"          # TODO: set identity as environment variable
@@ -113,33 +114,46 @@ sleep 5
 ./chaincode-commit.sh "org1.testbed.local"           # TODO: set identity as environment variable
 
 # Test the chaincode invocation with the new organization
-./chaincode-invoke.sh "org4.testbed.local" ${DEFAULT_PEER_ID}         # TODO: set identity as environment variable
+# ./chaincode-invoke.sh "org4.testbed.local" ${DEFAULT_PEER_ID}         # TODO: set identity as environment variable
 
 sleep 5 
 
-# Remove the new organization 4 from the network
-./network-leave-request.sh "${NETWORK_CTX_PATH}/org4/configtx.yaml" "org4.testbed.local" # TODO: set identity as environment variable
+# 1. Credentials and public identity creation
+./network-prep.sh "${NETWORK_CRP_PATH}/crypto-config-org5.yaml" "${NETWORK_CMP_PATH}/docker-compose-org5.yaml" # Done by organization 5
 
-# Approve the removal of organization 4 from the channel
-./network-approve-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
-./network-approve-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org2.testbed.local" # TODO: set identity as environment variable
-./network-approve-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org3.testbed.local" # TODO: set identity as environment variable
+# 2. Start the containers for organization 5
+./docker-up.sh "${NETWORK_CMP_PATH}/docker-compose-org5.yaml" # Start the containers for organization 5
 
-# Commit the removal of organization 4 from the channel
-./network-commit-update.sh "${NETWORK_CHN_PATH}/org4_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
+# 3. Create a join request for the new organization
+./network-join-request.sh "${NETWORK_CTX_PATH}/org5/configtx.yaml" "org1.testbed.local" # TODO: set identity as environment variable
 
-# Remove the organization 4 crypto material and public identity
-./network-leave-organization.sh "org4.testbed.local" --hard     # TODO: set identity as environment variable
+# 4. Approve the join request by signing it
+./network-approve-update.sh "${NETWORK_CHN_PATH}/org5_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
+./network-approve-update.sh "${NETWORK_CHN_PATH}/org5_update_in_envelope.pb" "org2.testbed.local" # TODO: set identity as environment variable
+./network-approve-update.sh "${NETWORK_CHN_PATH}/org5_update_in_envelope.pb" "org3.testbed.local" # TODO: set identity as environment variable
+./network-approve-update.sh "${NETWORK_CHN_PATH}/org5_update_in_envelope.pb" "org4.testbed.local" # TODO: set identity as environment variable
 
-# Stop the organization 4 containers
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml"
+# 5. Submit the join request to the orderer (only once)
+./network-commit-update.sh "${NETWORK_CHN_PATH}/org5_update_in_envelope.pb" "org1.testbed.local" # TODO: set identity as environment variable
 
-# ---- For test only ----
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-ord1.yaml" --hard
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-ord2.yaml" --hard
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-ord3.yaml" --hard
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org1.yaml" --hard
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org2.yaml" --hard
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org3.yaml" --hard
-./docker-down.sh "${NETWORK_CMP_PATH}/docker-compose-org4.yaml" --hard
-# -----------------------
+# 6. The new organization 5 needs to join the channel and install the chaincode
+./network-join-organization.sh "org5.testbed.local" # TODO: set identity as environment variable
+
+# 7. Set the anchor peer for organization 5 [to match the gossip bootstrap address in the compose file]
+./network-set-anchor-peer.sh "org5.testbed.local" ${DEFAULT_PEER_ID} # TODO: set identity as environment variable, assuming peer ID 1 is the anchor peer
+
+# 8. Install and approve the chaincode for organization 5
+./chaincode-install.sh "org5.testbed.local"          # TODO: set identity as environment variable
+
+# 9. Approve the chaincode for all organizations
+./chaincode-approve.sh "org1.testbed.local"          # TODO: set identity as environment variable
+./chaincode-approve.sh "org2.testbed.local"          # TODO: set identity as environment variable
+./chaincode-approve.sh "org3.testbed.local"          # TODO: set identity as environment variable
+./chaincode-approve.sh "org4.testbed.local"          # TODO: set identity as environment variable
+./chaincode-approve.sh "org5.testbed.local"          # TODO: set identity as environment variable
+
+# 10. Commit the chaincode to include the new organization in the endorsement policy
+./chaincode-commit.sh "org1.testbed.local"           # TODO: set identity as environment variable
+
+# Test the chaincode invocation with the new organization
+# ./chaincode-invoke.sh "org4.testbed.local" ${DEFAULT_PEER_ID}         # TODO: set identity as environment variable
