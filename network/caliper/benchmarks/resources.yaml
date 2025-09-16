@@ -34,7 +34,7 @@ monitors:
   resource:
     - module: docker
       options:
-        interval: 5
+        interval: 1
         containers:
           - all
         # charting:
