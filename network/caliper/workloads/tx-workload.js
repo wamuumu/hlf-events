@@ -12,7 +12,9 @@ class TxWorkload extends WorkloadModuleBase {
         
         this.contractName = roundArguments.contractName || "cc-test";
         this.functionName = roundArguments.functionName || "CreateResource";
-        this.workerIndex = workerIndex;
+        this.roundRobin = roundArguments.roundRobin || false;
+        this.organizations = Array.from(sutAdapter.connectorConfiguration.defaultInvokerMap.keys());
+        this.defaultOrganization = this.roundRobin ? this.organizations[workerIndex % this.organizations.length] : this.organizations[0];
     }
 
     async submitTransaction() {    
@@ -36,6 +38,7 @@ class TxWorkload extends WorkloadModuleBase {
                 randomTimestamp, 
                 JSON.stringify(["owner1", "owner2"])
             ],
+            invokerMspId: this.defaultOrganization,
             readOnly: false,
         };
 

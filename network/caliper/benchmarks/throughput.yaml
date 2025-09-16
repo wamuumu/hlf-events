@@ -16,6 +16,7 @@ test:
         module: workloads/tx-workload.js
         arguments:
           contractName: cc-test
+          roundRobin: true
     - label: query-throughput (read)
       description: High-volume query test for maximum TPS
       txDuration: 60 # Run for 60 seconds
@@ -27,3 +28,4 @@ test:
         module: workloads/query-workload.js
         arguments:
           contractName: cc-test
+          roundRobin: true

@@ -14,6 +14,9 @@ class QueryWorkload extends WorkloadModuleBase {
         this.contractName = roundArguments.contractName || "cc-test";
         this.functionName = roundArguments.functionName || "ReadResource";
         this.workerIndex = workerIndex;
+        this.roundRobin = roundArguments.roundRobin || false;
+        this.organizations = Array.from(sutAdapter.connectorConfiguration.defaultInvokerMap.keys());
+        this.defaultOrganization = this.roundRobin ? this.organizations[workerIndex % this.organizations.length] : this.organizations[0];
         
         const request = {
             contractId: this.contractName,
@@ -40,6 +43,7 @@ class QueryWorkload extends WorkloadModuleBase {
                 contractId: this.contractName,
                 contractFunction: this.functionName,
                 contractArguments: [randomAsset.PID],
+                invokerMspId: this.defaultOrganization,
                 readOnly: true,
             };
 
