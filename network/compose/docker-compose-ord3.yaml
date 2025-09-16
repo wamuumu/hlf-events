@@ -1,5 +1,4 @@
 volumes:
-  orderer_ord3_conf:
   orderer_ord3_data:
 
 networks:
@@ -23,11 +22,8 @@ services:
     command: orderer
     volumes:
       - ../config/orderer.yaml:/etc/hyperledger/fabric/orderer.yaml
-      - ../organizations/ordererOrganizations/ord3.testbed.local/orderers/orderer.ord3.testbed.local/msp/:/etc/hyperledger/fabric/msp
-      - ../organizations/ordererOrganizations/ord3.testbed.local/orderers/orderer.ord3.testbed.local/tls/:/etc/hyperledger/fabric/tls
-      - orderer_ord3_conf:/etc/hyperledger/fabric
-      - orderer_ord3_conf:/var/hyperledger
-      - orderer_ord3_data:/var/hyperledger/production/orderer
+      - ../organizations/ordererOrganizations/ord3.testbed.local/orderers/orderer.ord3.testbed.local/:/etc/hyperledger/fabric
+      - orderer_ord3_data:/var/hyperledger
     ports:
       - 9050:9050
       - 9053:9053
