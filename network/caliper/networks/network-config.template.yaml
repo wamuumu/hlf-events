@@ -1,0 +1,37 @@
+name: "Minimal Fabric Benchmark Network"
+version: "2.0.0"
+
+caliper:
+  blockchain: fabric 
+
+# Basic information about the network setup, can contain anything useful (user defined)
+info:
+  version: "1.0"
+  size: 3 Orgs
+  consensus: Raft
+
+channels:
+  - channelName: mychannel # name of the channel to connect to
+    contracts:
+      - id: mycontract # name of the chaincode to interact with
+
+# NOTE: normally, here only one organization is defined, since there must be credentials for at least one identity
+# NOTE: multiple organizations can be defined, but they also must share their private credentials (not recommended in production)
+
+# A more plausible solution is to run concurrently multiple Caliper instaqnces, each with its own organization definition
+
+organizations:
+  - mspid: Org1MSP # MSP ID for organization 1, must match the MSP ID in the CCP and the network
+    identities:
+      certificates:
+        - name: Admin # name of the identity, can be anything
+          admin: true # true if this identity is an admin, false otherwise
+          clientPrivateKey:
+            path: ../organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/keystore/priv_sk # private key, must be kept secret and shared to only trusted parties
+          clientSignedCert:
+            path: ../organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/signcerts/Admin@org1.testbed.local-cert.pem # public key certificate, can be shared freely
+    connectionProfile:
+      path: ../organizations/peerOrganizations/org1.testbed.local/connection-org1.json # CCP file for organization 1, containing only one peer for dynamic profiling
+      discover: true # Enable service discovery for this organization (dynamic profiling)
+
+  # Can add more organizations here as needed, but they must share the credentials for connecting to the identities

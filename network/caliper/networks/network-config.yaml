@@ -2,7 +2,12 @@ name: "Minimal Fabric Benchmark Network"
 version: "2.0.0"
 
 caliper:
-  blockchain: fabric
+  blockchain: fabric 
+
+info:
+  version: "1.0"
+  size: 3 Orgs
+  consensus: Raft
 
 channels:
   - channelName: mychannel

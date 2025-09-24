@@ -1,0 +1,39 @@
+volumes:
+  peer0_org5_data:
+
+networks:
+  fabric_net:
+    name: fabric_net
+
+services:
+  peer0.org5.testbed.local:
+    container_name: peer0.org5.testbed.local
+    image: hyperledger/fabric-peer:${FABRIC_VERSION}
+    labels:
+      service: hyperledger-fabric
+    environment:
+      # General variables
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_net
+      # Peer specific variables
+      - CORE_PEER_LOCALMSPID=Org5MSP
+      - CORE_PEER_ID=peer0.org5.testbed.local
+      - CORE_PEER_ADDRESS=peer0.org5.testbed.local:12051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:12051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org5.testbed.local:12052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:12052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org5.testbed.local:12051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org5.testbed.local:12051
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.org5.testbed.local:9450
+    working_dir: /root
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
+      - ../organizations/peerOrganizations/org5.testbed.local/peers/peer0.org5.testbed.local:/etc/hyperledger/fabric
+      - peer0_org5_data:/var/hyperledger
+    ports:
+      - 12051:12051
+      - 9450:9450
+    networks:
+      - fabric_net

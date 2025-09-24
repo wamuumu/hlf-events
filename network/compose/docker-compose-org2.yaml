@@ -1,5 +1,4 @@
 volumes:
-  peer0_org2_conf:
   peer0_org2_data:
 
 networks:
@@ -31,11 +30,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
-      - ../organizations/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local/msp:/etc/hyperledger/fabric/msp
-      - ../organizations/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local/tls:/etc/hyperledger/fabric/tls
-      - peer0_org2_conf:/etc/hyperledger/fabric
-      - peer0_org2_conf:/var/hyperledger
-      - peer0_org2_data:/var/hyperledger/production
+      - ../organizations/peerOrganizations/org2.testbed.local/peers/peer0.org2.testbed.local:/etc/hyperledger/fabric
+      - peer0_org2_data:/var/hyperledger
     ports:
       - 8051:8051
       - 9446:9446
