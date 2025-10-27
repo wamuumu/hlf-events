@@ -251,11 +251,11 @@ graph TB
     Channel <--> Ordering
 
     %% ============= STYLING =============
-    style Org1 fill:#e1f5ff,stroke:#90caf9,stroke-width:1px
-    style Org2 fill:#e8f5e9,stroke:#a5d6a7,stroke-width:1px
-    style Org3 fill:#fff3e0,stroke:#ffcc80,stroke-width:1px
-    style Channel fill:#fff9c4,stroke:#fdd835,stroke-width:1px
-    style Ordering fill:#ffebee,stroke:#ef9a9a,stroke-width:1px
+    style Org1 fill:#e1f5ff,stroke:#90caf9,stroke-width:1px,color:black
+    style Org2 fill:#e8f5e9,stroke:#a5d6a7,stroke-width:1px,color:black
+    style Org3 fill:#fff3e0,stroke:#ffcc80,stroke-width:1px,color:black
+    style Channel fill:#fff9c4,stroke:#fdd835,stroke-width:1px,color:black
+    style Ordering fill:#ffebee,stroke:#ef9a9a,stroke-width:1px,color:black
 ```
 ---
 
