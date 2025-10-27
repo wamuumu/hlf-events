@@ -36,7 +36,6 @@ To run this project, ensure that all the following dependencies are installed an
 |------|---------|---------|
 | 🐳 [Docker](https://www.docker.com/) | Latest | Container runtime |
 | 📦 [Node.js](https://nodejs.org/) | 18+ | Application runtime |
-| 🔧 npm | Latest | Package manager |
 
 ### Installation
 
@@ -124,6 +123,9 @@ CC_SRC_LANG="javascript"
 
 ### Initial Network Setup
 
+> [!NOTE]  
+> In production, the initial setup might be a little tricky since it requires strict cooperation and coordination among all the initial members of the network. 
+
 > [!IMPORTANT]  
 > Before proceeeding, a leader organization should be chosen, ensuring critical operations are executed only once.
 
@@ -145,9 +147,6 @@ cd network/scripts
 ./network-join-orderer.sh <orderer-hostname>
 ./network-join-organization.sh <org-domain>
 ```
-
-> [!NOTE]  
-> In production, the initial setup might be a little tricky since it requires strict cooperation and coordination among all the initial members of the network. 
 
 ### Chaincode Lifecycle
 
