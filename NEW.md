@@ -215,61 +215,47 @@ cd network/scripts
 
 ```mermaid
 graph TB
-    subgraph Clients["Client Applications"]
-        APP1[Application 1]
-        APP2[Application 2]
-        APP3[Application 3]
+    %% ============= ORGANIZATIONS =============
+    subgraph Org1["🏢 Organization 1"]
+        P1[Peer0.Org1<br/>Ledger<br/>Chaincode: cc-test]
     end
 
-    subgraph Org1["Organization 1"]
-        P1[Peer0<br/>Ledger L1<br/>Chaincode: cc-test]
-        P2[Peer1<br/>Ledger L1<br/>Chaincode: cc-test]
+    subgraph Org2["🏢 Organization 2"]
+        P2[Peer0.Org2<br/>Ledger<br/>Chaincode: cc-test]
     end
 
-    subgraph Org2["Organization 2"]
-        P3[Peer0<br/>Ledger L1<br/>Chaincode: cc-test]
-        P4[Peer1<br/>Ledger L1<br/>Chaincode: cc-test]
+    subgraph Org3["🏢 Organization 3"]
+        P3[Peer0.Org3<br/>Ledger<br/>Chaincode: cc-test]
     end
 
-    subgraph Org3["Organization 3"]
-        P5[Peer0<br/>Ledger L1<br/>Chaincode: cc-test]
-        P6[Peer1<br/>Ledger L1<br/>Chaincode: cc-test]
+    %% ============= CHANNEL =============
+    subgraph Channel["📡 Channel: mychannel"]
+        CH[Channel Configuration Block]
     end
 
-    subgraph Channel["Channel: mychannel"]
-        CH[Channel Configuration]
-    end
-
-    subgraph Ordering["Ordering Service (Raft)"]
+    %% ============= ORDERING SERVICE =============
+    subgraph Ordering["🧱 Ordering Service (Raft)"]
         O1[Orderer 1]
         O2[Orderer 2]
         O3[Orderer 3]
+
+        O1 <--> O2
+        O2 <--> O3
+        O3 <--> O1
     end
 
-    APP1 -->|1. Propose Transaction| P1
-    APP2 -->|1. Propose Transaction| P3
-    APP3 -->|1. Propose Transaction| P5
+    %% ============= CONNECTIONS =============
+    P1 --> Channel
+    P2 --> Channel
+    P3 --> Channel
+    Channel <--> Ordering
 
-    P1 -->|2. Endorsed Response| APP1
-    P3 -->|2. Endorsed Response| APP2
-    P5 -->|2. Endorsed Response| APP3
-
-    APP1 -->|3. Submit to Ordering| Ordering
-    APP2 -->|3. Submit to Ordering| Ordering
-    APP3 -->|3. Submit to Ordering| Ordering
-
-    Ordering -->|4. Deliver Blocks| Channel
-
-    Channel -->|5. Update Ledger| Org1
-    Channel -->|5. Update Ledger| Org2
-    Channel -->|5. Update Ledger| Org3
-
-    style Org1 fill:#e1f5ff
-    style Org2 fill:#e8f5e9
-    style Org3 fill:#fff3e0
-    style Ordering fill:#ffebee
-    style Channel fill:#fff9c4
-    style Clients fill:#f3e5f5
+    %% ============= STYLING =============
+    style Org1 fill:#e1f5ff,stroke:#90caf9,stroke-width:1px
+    style Org2 fill:#e8f5e9,stroke:#a5d6a7,stroke-width:1px
+    style Org3 fill:#fff3e0,stroke:#ffcc80,stroke-width:1px
+    style Channel fill:#fff9c4,stroke:#fdd835,stroke-width:1px
+    style Ordering fill:#ffebee,stroke:#ef9a9a,stroke-width:1px
 ```
 ---
 
