@@ -2,7 +2,7 @@
 
 # 🔗 Hyperledger Fabric Dynamic Network
 
-### *A comprehensive blockchain network implementation with real-time event monitoring and dynamic organization management*
+### *A comprehensive permissioned blockchain network implementation with dynamic organization management, chaincode deployment and real-time event monitoring.*
 
 [![Hyperledger Fabric](https://img.shields.io/badge/Hyperledger%20Fabric-2.5.13-orange?style=for-the-badge&logo=hyperledger)](https://www.hyperledger.org/use/fabric)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js)](https://nodejs.org/)
@@ -30,7 +30,7 @@
 
 ### Prerequisites
 
-Ensure you have the following installed:
+To run this project, ensure that all the following dependencies are installed and available: 
 
 | Tool | Version | Purpose |
 |------|---------|---------|
@@ -39,6 +39,8 @@ Ensure you have the following installed:
 | 🔧 npm | Latest | Package manager |
 
 ### Installation
+
+To get started with this project, first clone the repository to your local machine:
 
 ```bash
 # Clone the repository
@@ -91,7 +93,7 @@ network/
 
 ### Network Configuration (`network.config`)
 
-Key parameters for customizing your deployment:
+ This configuration file contains all the necessary variables for the network definition, including the Hyperledger Fabric settings and the default identity to use.
 
 ```bash
 # Fabric Version
@@ -99,21 +101,31 @@ FABRIC_VERSION="2.5.13"
 
 # Network Identifiers
 NETWORK_CHN_NAME="mychannel"
-DEFAULT_ORG_DOMAIN="org1.testbed.local"
+# Paths definitions ...
+
+# Defaults variables
+DEFAULT_ORG_DOMAIN="org1.tesbed.local"
+DEFAULT_ORD="orderer.ord1.testbed.local"
+DEFAULT_PEER_ID=1
+DEFAULT_ENDPOINT="localhost"
 
 # Chaincode Settings
 CC_NAME="cc-test"
-CC_VERSION="1.0"
 CC_SRC_LANG="javascript"
+# Chaincode variables ...
 ```
 
 ---
 
 ## 🔧 Network Operations
 
-All scripts must be executed from the `network/scripts/` directory.
+> [!IMPORTANT]  
+> All scripts related to network operations must be executed from the `network/scripts/` directory.
 
 ### Initial Network Setup
+
+> [!IMPORTANT]  
+> Before proceeeding, a leader organization should be chosen, ensuring critical operations are executed only once.
 
 ```bash
 # Install Hyperledger Fabric binaries and dependencies
@@ -123,7 +135,7 @@ cd network/scripts
 # 1️⃣ Generate cryptographic material for each organization
 ./network-prep.sh <crypto-config-file> <docker-compose-file>
 
-# 2️⃣ Generate genesis block (admin only)
+# 2️⃣ Generate genesis block (leader only)
 ./network-init.sh
 
 # 3️⃣ Start Docker containers
@@ -134,19 +146,25 @@ cd network/scripts
 ./network-join-organization.sh <org-domain>
 ```
 
+> [!NOTE]  
+> In production, the initial setup might be a little tricky since it requires strict cooperation and coordination among all the initial members of the network. 
+
 ### Chaincode Lifecycle
 
 ```bash
-# Install chaincode on organization's peers
+# 1️⃣ Package the chaincode 
+./chaincode-package.sh
+
+# 2️⃣ Install chaincode on organization's peers
 ./chaincode-install.sh <org-domain>
 
-# Approve chaincode (each organization)
+# 3️⃣ Approve chaincode (each organization)
 ./chaincode-approve.sh <org-domain>
 
-# Commit chaincode to channel (once)
+# 4️⃣ Commit chaincode to channel (only once)
 ./chaincode-commit.sh <org-domain>
 
-# Test chaincode operations (optional)
+# 5️⃣ Test chaincode operations (optional)
 ./chaincode-invoke.sh <org-domain> <peer-id>
 ./chaincode-query.sh <org-domain> <peer-id>
 ```
@@ -200,16 +218,15 @@ cd network/scripts
 ./docker-down.sh docker-compose-org4.yaml
 ```
 
-### Test the network with basic setups
+### Test the network with basic setup
 
-* **3 Ordering Nodes** (Raft consensus)
-* **3 Peer Organizations** (dynamically manageable)
+* **3 Ordering Nodes** (`Raft consensus`)
+* **3 Peer Organizations**
 * **1 Application Channel** (`mychannel`)
 * **1 Deployed Chaincode** (`cc-test`)
-* **Full chaincode lifecycle automation**
-* **Dynamic organization join/leave support**
 
 ```bash
+# Setup a ready-to-use network with 3 organizations and 3 orderers
 ./test-3-orgs.sh
 ```
 
@@ -262,7 +279,7 @@ graph TB
 ## 🛡️ Security Considerations
 
 - 🔐 **Private keys** stored locally in `organizations/` (never shared)
-- 📜 **Public certificates** shared via `identities/` folder (identity verification)
+- 📜 **Public certificates** shared via `identities/` folder (trust)
 - 🔏 **TLS enabled** for all communications
 - ✍️ **Digital signatures** for identity verification
 - 🎫 **MSP-based** access control
@@ -431,10 +448,11 @@ const resource = await contractManager.createResource([
 
 ## 📄 License
 
-This project is licensed under the **GNU General Public License v3** - see the [LICENSE](LICENSE) file for details.
+Released under the [GNU](LICENSE) license.
 
-<div align="center">
+<div align="left">
 
-[⬆ Back to Top](#-hyperledger-fabric-dynamic-network)
+[![](https://img.shields.io/badge/Return-5D4ED3?style=flat&logo=ReadMe&logoColor=white)](#top)
 
 </div>
+
