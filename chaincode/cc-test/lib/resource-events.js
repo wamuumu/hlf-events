@@ -37,7 +37,6 @@ class ResourceEvents extends Contract {
 			throw new Error(`The resource ${pid} does not exist`);
 		
 		const resourceJSON = await ctx.stub.getState(pid);
-		ctx.stub.setEvent('ReadResource', resourceJSON);
 		return resourceJSON.toString();
 	}
 
@@ -62,7 +61,6 @@ class ResourceEvents extends Contract {
 				break;
 			}
 		}
-		ctx.stub.setEvent('GetResourcesByTimestamp', Buffer.from(JSON.stringify({startTs:startTs, endTs:endTs})));
 		return JSON.stringify(allResults);
 	}
 
@@ -84,8 +82,6 @@ class ResourceEvents extends Contract {
 			result = await iterator.next();
 		}
 		await iterator.close();
-		const allResultsBuffer = Buffer.from(JSON.stringify(allResults));
-		ctx.stub.setEvent('ReadAllResources', allResultsBuffer);
 		return JSON.stringify(allResults);
 	}
 
