@@ -125,10 +125,10 @@ CC_SRC_LANG="javascript"
 > [!IMPORTANT]  
 > All scripts related to network operations must be executed from the `network/scripts/` directory.
 
-### Initial Network Setup
-
 > [!NOTE]  
-> In production, the initial setup might be a little tricky since it requires strict cooperation and coordination among all the initial network members. 
+> In production, network operations might be a little tricky since they often require strict cooperation and coordination among all the network members.
+
+### Initial Network Setup
 
 > [!IMPORTANT]  
 > Before proceeeding, a leader organization should be chosen, ensuring critical operations are executed only once.
@@ -152,8 +152,8 @@ Each organization must generate its own credentials (private keys and public cer
 # 1️⃣ Generate cryptographic material for each organization
 ./network-prep.sh <crypto-config-file> <docker-compose-file>
 ```
-> [!WARNING]  
-> Change `<crypto-config-file>` and `<docker-compose-file>` according to your environment.
+> [!IMPORTANT]  
+> Crypto config files and docker compose files should be distributed by the **leader organization** and adjusted accordingly.
 
 #### Genesis Block Generation
 
@@ -184,10 +184,16 @@ After all organizations have generated their credentials and the genesis block h
 ./network-join-organization.sh <org-domain>
 ```
 
-> [!WARNING]  
-> Change `<docker-compose-file>` and environment variables according to your setup.
+> [!TIP]  
+> Organizations and orderers differ in their roles and responsibilities within the network.
 
 ### Chaincode Lifecycle
+
+The chaincode defines the business logic of the blockchain application that runs on the organizations' peers. 
+
+#### Chaincode Installation
+
+The chaincode must be installed on all peers that will endorse transactions. This is done by packaging the chaincode in a **tarball** and then, for simplicity, installing it on each peer.
 
 ```bash
 # 1️⃣ Package the chaincode 
@@ -195,10 +201,25 @@ After all organizations have generated their credentials and the genesis block h
 
 # 2️⃣ Install chaincode on organization's peers
 ./chaincode-install.sh <org-domain>
+```
 
+#### Chaincode Approval
+
+Once the chaincode is installed, each organization must approve its definition. This ensures that all organizations agree on the chaincode that will be used.
+
+```bash
 # 3️⃣ Approve chaincode (each organization)
 ./chaincode-approve.sh <org-domain>
+```
 
+> [!IMPORTANT]  
+> In order to reach consensus, all the organizations must approve the chaincode definition.
+
+#### Chaincode Commitment
+
+After all organizations have approved the chaincode, it can be committed to the channel. This makes the chaincode available for use in transactions.
+
+```bash
 # 4️⃣ Commit chaincode to channel (only once)
 ./chaincode-commit.sh <org-domain>
 
