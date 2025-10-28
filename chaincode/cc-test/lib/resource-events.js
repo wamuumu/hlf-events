@@ -41,6 +41,31 @@ class ResourceEvents extends Contract {
 		return resourceJSON.toString();
 	}
 
+	// GetResourcesByTimestamp returns all resources within the given timestamp range.
+	async GetResourcesByTimestamp(ctx, startTs, endTs) {
+		const allResults = [];
+		const iterator = await ctx.stub.getStateByRange("", "");
+
+		while (true) {
+			const res = await iterator.next();
+			if (res.value && res.value.value.toString()) {
+				const resource = JSON.parse(res.value.value.toString("utf8"));
+
+				// ensure timestamp is numeric for comparison
+				const ts = Number(resource.timestamp);
+				if (ts >= Number(startTs) && ts <= Number(endTs)) {
+					allResults.push(resource);
+				}
+			}
+			if (res.done) {
+				await iterator.close();
+				break;
+			}
+		}
+		ctx.stub.setEvent('GetResourcesByTimestamp', Buffer.from(JSON.stringify({startTs:startTs, endTs:endTs})));
+		return JSON.stringify(allResults);
+	}
+
 	// ReadAllResources returns all resources found in the world state.
 	async ReadAllResources(ctx) {
 		const allResults = [];
