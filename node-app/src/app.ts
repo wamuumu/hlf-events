@@ -1,68 +1,48 @@
-/*
- * Copyright IBM Corp. All Rights Reserved.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+import express from 'express';
+import path from 'path';
+import router from './api/router';
+import config from './config/config';
 
-import * as path from 'path';
-import * as dotenv from 'dotenv';
+import { ConnectionManager } from './lib/connect';
+import { EventManager } from './lib/listener';
+import { ContractManager } from './lib/contract';
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-
-import { ConnectionManager } from './connect';
-import { EventManager } from './listener';
-import { ContractManager } from './contract';
-
-async function main(): Promise<void> {
-
-    const connection_manager = new ConnectionManager();
-    let event_manager: EventManager | undefined;
-    let contract_manager: ContractManager | undefined;
+(async () => {
+    const connection_manager: ConnectionManager = new ConnectionManager();
 
     connection_manager.onNewGateway(async (gateway) => {
-        console.log(`\n*** [APP] New gateway connection established: ${gateway.getIdentity().mspId}`);
+        console.log(`[APP] Connection established with: ${gateway.getIdentity().mspId}`);
 
-        event_manager = new EventManager(gateway);
+        const contract_manager: ContractManager = new ContractManager(gateway);
+        const event_manager: EventManager = new EventManager(gateway);
         event_manager.listen();
+        
+        const app = express();
+        app.use(express.json());
+        app.use('/api', router);
+        app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
+        app.set('contractManager', contract_manager);
 
-        contract_manager = new ContractManager(gateway);
+        const server = app.listen(config.PORT, () => {
+            console.log(`[APP] Server is running on port ${config.PORT} in ${config.NODE_ENV} mode`);
+        }).on('error', (error) => {
+            console.error('[APP] Server error:', error);
+            process.exit(1);
+        });
+
+        const shutdown = (signal: string) => {
+            console.log(`[APP] ${signal} signal received: closing HTTP server`);
+            server.close(() => {
+                console.log('[APP] HTTP server closed.');
+            });
+            event_manager?.stop();
+            connection_manager?.closeGatewayConnection();
+            process.exit(1);
+        };
+
+        process.on('SIGTERM', () => shutdown('SIGTERM'));
+        process.on('SIGINT', () => shutdown('SIGINT'));
     });
 
     await connection_manager.createGatewayConnection();
-    
-    console.log('\n*** [APP] Gateway connection established. Listening for events...');
-    if (contract_manager) {
-
-        const resource = [
-            `pid_test_${Date.now()}`,
-            'uri_test',
-            'hash_test',
-            'timestamp_test',
-            JSON.stringify(['owner1', 'owner2']),
-        ]
-
-        try {
-            const created = await contract_manager.createResource(resource);
-            const retrieved = await contract_manager.readResource([created.PID]);
-
-            console.log(created.PID, retrieved.PID);
-        } catch (error) {
-            console.error('Error during resource creation or retrieval:', error);
-        }
-    }
-    
-    // Set up graceful shutdown on Ctrl+C
-    const cleanup = () => {
-        console.log('\n*** [APP] Shutting down gracefully...');
-        event_manager?.stop();
-        connection_manager.closeGatewayConnection();
-        process.exit(0);
-    };
-
-    process.on('SIGINT', cleanup);
-    process.on('SIGTERM', cleanup);
-
-    await new Promise(() => {}); // Keep the process running to listen for events
-}
-
-main();
+})();

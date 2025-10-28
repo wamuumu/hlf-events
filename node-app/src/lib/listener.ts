@@ -1,11 +1,7 @@
-/*
- * Copyright IBM Corp. All Rights Reserved.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { Gateway, Network, ChaincodeEvent, CloseableAsyncIterable } from '@hyperledger/fabric-gateway';
 import { TextDecoder } from 'util';
+
+import config from '../config/config';
 
 const utf8Decoder = new TextDecoder();
 
@@ -17,8 +13,8 @@ export class EventManager {
 
     constructor(gateway: Gateway) {
         this.gateway = gateway;
-        this.channel_name = process.env.FABRIC_DEFAULT_CHANNEL || '';
-        this.chaincode_name = process.env.FABRIC_DEFAULT_CC_NAME || '';
+        this.channel_name = config.FABRIC_DEFAULT_CHANNEL || '';
+        this.chaincode_name = config.FABRIC_DEFAULT_CC_NAME || '';
     }
 
     public async listen(): Promise<void> {
@@ -40,13 +36,14 @@ export class EventManager {
     public stop(): void {
         if (this.events)
             this.events.close();
-        console.log('*** Event listening stopped');
+        console.log('[APP] Event listening stopped');
     }
 
     private async startEventListening(network: Network): Promise<void> {
-        console.log('\n*** Start chaincode event listening');
-    
-        this.events = await network.getChaincodeEvents(this.chaincode_name);
+        console.log('[APP] Start endorsing events listening...');
+        
+        // Get chaincode events that are emitted when modifying the ledger
+        this.events = await network.getChaincodeEvents(this.chaincode_name); 
         
         void this.readEvents(); // Don't await - run asynchronously
     }
@@ -56,7 +53,7 @@ export class EventManager {
             try {
                 for await (const event of this.events) {
                     const payload = this.parseJson(event.payload);
-                    console.log(`\n<-- [CHAINCODE] Chaincode event received: ${event.eventName} -`, payload);
+                    console.log(`\n[CHAINCODE] Chaincode event received: ${event.eventName} -`, payload);
                 }
             } catch (error: unknown) {
                 this.stop();

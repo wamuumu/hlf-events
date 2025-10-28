@@ -1,36 +1,27 @@
-/*
- * Copyright IBM Corp. All Rights Reserved.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import * as grpc from '@grpc/grpc-js';
 import {  Identity,  Signer, signers, connect, hash, Gateway } from '@hyperledger/fabric-gateway';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import config from '../config/config';
 
 export interface PeerConfig {
     endpoint: string;
     hostname: string;
-    port?: number;
 }
 
 export interface OrganizationConfig {
     mspId: string;
     name: string;
     domain: string;
-    peers: PeerConfig[];
-    users: string[];
 }
 
 export interface ConnectionProfile {
-    organizations: OrganizationConfig[];
-    connectionTimeout: number;
-    retryAttempts: number;
-    retryDelay: number;
-    pathTemplates: {
+    organization: OrganizationConfig;
+    peer: PeerConfig;
+    user: string;
+    credentials: {
         tlsCertPath: string;
         userKeyPath: string;
         userCertPath: string;
@@ -40,76 +31,32 @@ export interface ConnectionProfile {
 export interface Connection {
     client: grpc.Client;
     gateway: Gateway;
-    organization: OrganizationConfig;
-    peer: PeerConfig;
-    user: string;
+    profile: ConnectionProfile;
 }
 
 export class ConnectionManager {
     private connection_profile: ConnectionProfile;
-    private connection_details: Connection = {
-        client: undefined as unknown as grpc.Client,
-        gateway: undefined as unknown as Gateway,
-        organization: undefined as unknown as OrganizationConfig,
-        peer: undefined as unknown as PeerConfig,
-        user: ''
-    };
+    private connection_details: Connection;
 
-    constructor();
-    constructor(organization?: string, peer?: string, user?: string);
-    
-    constructor(organization?: string, peer?: string, user?: string) {
-        this.connection_profile = this.loadProfile(organization, peer, user);
-    }
+    constructor() {
+        let organization = {
+            mspId: config.FABRIC_DEFAULT_MSPID,
+            name: config.FABRIC_DEFAULT_ORGANIZATION,
+            domain: config.FABRIC_DEFAULT_DOMAIN
+        } as OrganizationConfig;
 
-    public loadProfile(organization?: string, peer?: string, user?: string) : ConnectionProfile {
-        const profile_path = path.resolve(__dirname, '..', 'config', 'connection-profile.json');
-        console.log(`Loading connection profile from: ${profile_path}`);
-        const profile_data = fs.readFileSync(profile_path, 'utf8');
-        if (!profile_data)
-            throw new Error(`Connection profile not found at path: ${profile_path}`);
-        const profile_json = JSON.parse(profile_data);
+        let peer = {
+            endpoint: config.FABRIC_DEFAULT_PEER_ENDPOINT,
+            hostname: config.FABRIC_DEFAULT_PEER_HOSTNAME
+        } as PeerConfig;
 
-        const org_name = organization || String(process.env.FABRIC_DEFAULT_ORGANIZATION) || profile_json.organizations[0]?.name;
-        if (!org_name) {
-            throw new Error('No organization specified and none found in connection profile or environment variable FABRIC_DEFAULT_ORG');
-        }
-        console.log(`Using organization: ${org_name}`);
-        const org_json = profile_json.organizations.find((o: OrganizationConfig) =>
-            o.name.toLowerCase() === org_name.toLowerCase());
-        if (!org_json) {
-            throw new Error(`Organization ${org_name} not found in connection profile`);
-        }
+        this.connection_profile = this.resolvePaths(organization, peer, config.FABRIC_DEFAULT_USER);
 
-        const user_name = user || String(process.env.FABRIC_DEFAULT_USER) || org_json.users[0];
-        if (!user_name) {
-            throw new Error('No user specified and none found in organization or environment variable FABRIC_DEFAULT_USER');
-        }
-        console.log(`Using user: ${user_name}`);
-        user = org_json.users.find((u: string) =>
-            u.toLowerCase() === user_name.toLowerCase());
-        if (user) {
-            user = user.charAt(0).toUpperCase() + user.slice(1); // Capitalize to match the expected format
-        } else {
-            throw new Error(`User ${user_name} not found in organization ${org_json.name}`);
-        }
-
-        const peer_name = peer || org_json.peers[0]?.hostname;
-        if (!peer_name) {
-            throw new Error('No peer specified and none found in organization');
-        }
-        console.log(`Using peer: ${peer_name}`);
-        const peer_json = org_json.peers.find((p: PeerConfig) =>
-            p.hostname.toLowerCase() === peer_name.toLowerCase());
-        if (!peer_json) {
-            throw new Error(`Peer ${peer_name} not found in organization ${org_json.name}`);
-        }
-
-        this.connection_details.organization = org_json;
-        this.connection_details.peer = peer_json;
-        this.connection_details.user = user;
-
-        return this.resolvePaths(profile_json, org_json, peer_json, user);
+        this.connection_details = {
+            client: undefined as unknown as grpc.Client,
+            gateway: undefined as unknown as Gateway,
+            profile: this.connection_profile
+        };
     }
 
     public async createGatewayConnection(): Promise<void> {
@@ -169,25 +116,28 @@ export class ConnectionManager {
         this.connection_details.gateway = undefined as unknown as Gateway;
     }
 
-    private resolvePaths(connection_profile: ConnectionProfile, organization: OrganizationConfig, peer: PeerConfig, user: string): ConnectionProfile {
-        const resolvedProfile: ConnectionProfile = { ...connection_profile };
-        const crypto_path = path.resolve(__dirname, '..', '..', 'network', 'organizations', 'peerOrganizations', organization.domain);
-        resolvedProfile.pathTemplates = {
-            userKeyPath: path.resolve(crypto_path, 'users', `${user}@${organization.domain}`, 'msp', 'keystore'),
-            userCertPath: path.resolve(crypto_path, 'users', `${user}@${organization.domain}`, 'msp', 'signcerts'),
-            tlsCertPath: path.resolve(crypto_path, 'peers', `${peer.hostname}`, 'tls', 'ca.crt')
+    private resolvePaths(organization: OrganizationConfig, peer: PeerConfig, user: string): ConnectionProfile {
+        const crypto_path = path.resolve(__dirname, '..', '..', '..', 'network', 'organizations', 'peerOrganizations', organization.domain);
+        return {
+            organization,
+            peer,
+            user,
+            credentials: {
+                userKeyPath: path.resolve(crypto_path, 'users', `${user}@${organization.domain}`, 'msp', 'keystore'),
+                userCertPath: path.resolve(crypto_path, 'users', `${user}@${organization.domain}`, 'msp', 'signcerts'),
+                tlsCertPath: path.resolve(crypto_path, 'peers', `${peer.hostname}`, 'tls', 'ca.crt')
+            }
         };
-        return resolvedProfile;
     }
 
     private async createGrpcClient(): Promise<grpc.Client> {
-        const tls_root_cert = await fs.promises.readFile(this.connection_profile.pathTemplates.tlsCertPath);
+        const tls_root_cert = await fs.promises.readFile(this.connection_profile.credentials.tlsCertPath);
         const tls_credentials = grpc.credentials.createSsl(tls_root_cert);
-        const organization = this.connection_details.organization;
+        const organization = this.connection_profile.organization;
         if (!organization) {
             throw new Error(`Organization is undefined`);
         }
-        const peer = this.connection_details.peer;
+        const peer = this.connection_profile.peer;
         if (!peer) {
             throw new Error(`Peer is undefined for organization ${organization.name}`);
         }
@@ -197,9 +147,9 @@ export class ConnectionManager {
     }
 
     private async createIdentity(): Promise<Identity> {
-        const certPath = await this.getFirstDirFileName(this.connection_profile.pathTemplates.userCertPath);
+        const certPath = await this.getFirstDirFileName(this.connection_profile.credentials.userCertPath);
         const credentials = await fs.promises.readFile(certPath);
-        const organization = this.connection_details.organization;
+        const organization = this.connection_profile.organization;
         if (!organization) {
             throw new Error(`Organization is undefined`);
         }
@@ -210,7 +160,7 @@ export class ConnectionManager {
     }
 
     private async createSigner(): Promise<Signer> {
-        const key_path = await this.getFirstDirFileName(this.connection_profile.pathTemplates.userKeyPath);
+        const key_path = await this.getFirstDirFileName(this.connection_profile.credentials.userKeyPath);
         const pkey_pem = await fs.promises.readFile(key_path);
         const pkey = crypto.createPrivateKey(pkey_pem);
         return signers.newPrivateKeySigner(pkey);
@@ -228,14 +178,17 @@ export class ConnectionManager {
     private monitorConnection(): void {
         const channel = this.connection_details.client.getChannel();
         let current_state = channel.getConnectivityState(false);
-        const deadline = process.env.CONNECTION_RECONNECT_TIMEOUT ? parseInt(process.env.CONNECTION_RECONNECT_TIMEOUT) : 10000;
+        const deadline = config.CONNECTION_RECONNECT_TIMEOUT;
         try {
             channel.watchConnectivityState(current_state, Date.now() + deadline, async (error?: Error) => {
                 if (error) {
                     this.monitorConnection(); // Here if client is still running in READY state
                 } else {
                     current_state = channel.getConnectivityState(true);
-                    console.log("Client state changed: ", current_state);
+                    console.log(
+                        '[APP] Client state changed:',
+                        (grpc.connectivityState as any)[current_state] ?? current_state
+                    );
 
                     // TODO: If state becomes IDLE from READY, we can assume a disconnect
                 }
