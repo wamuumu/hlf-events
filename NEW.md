@@ -4,11 +4,12 @@
 
 ### *A comprehensive permissioned blockchain network implementation with dynamic organization management, chaincode deployment and real-time event monitoring.*
 
-[![Hyperledger Fabric][fabric-logo]](https://hyperledger-fabric.readthedocs.io/)
-[![Node.js][nodejs-logo]](https://nodejs.org/)
-[![Docker][docker-logo]](https://www.docker.com/)
-[![TypeScript][typescript-logo]](https://www.typescriptlang.org/)
-[![License][license-logo]](LICENSE)
+[![fabric-logo]](https://hyperledger-fabric.readthedocs.io/)
+[![shell-logo]](network/scripts/ "Bash scripts for network automation")
+[![docker-logo]](https://www.docker.com/)
+[![nodejs-logo]](https://nodejs.org/)
+[![typescript-logo]](https://www.typescriptlang.org/)
+[![license-logo]](LICENSE)
 
 </div>
 
@@ -456,6 +457,7 @@ Released under the [GNU](LICENSE) license.
 </div>
 
 <!-- LOGOs -->
+[shell-logo]: https://img.shields.io/badge/Shell-Bash-4EAA25?style=for-the-badge&logo=gnu-bash
 [nodejs-logo]: https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js
 [docker-logo]: https://img.shields.io/badge/Docker-Latest-2496ED?style=for-the-badge&logo=docker
 [typescript-logo]: https://img.shields.io/badge/TypeScript-5.4-3178C6?style=for-the-badge&logo=typescript
