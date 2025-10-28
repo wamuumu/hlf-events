@@ -68,23 +68,23 @@ This project consists of **three main components**, forming a complete blockchai
 
 ```
 network/
-├── 📁 bin/                    # Hyperledger Fabric binaries
-├── 📁 channel/                # Generated channel artifacts
-├── 📁 compose/                # Docker Compose files
+├── 📁 bin/                     # Hyperledger Fabric binaries
+├── 📁 channel/                 # Generated channel artifacts
+├── 📁 compose/                 # Docker Compose files
 │   ├── docker-compose-ord1.yaml
 │   ├── docker-compose-org1.yaml
 │   └── ...
-├── 📁 config/                 # Core configuration files
-│   ├── core.yaml             # Peer configuration
-│   └── orderer.yaml          # Orderer configuration
-├── 📁 configtx/              # Channel configuration
-│   ├── configtx.yaml         # Main channel config
-│   └── org4/                 # Dynamic org configs
-├── 📁 crypto/                # Crypto config templates
-├── 📁 identities/            # Public certificates (shared)
-├── 📁 organizations/         # Private keys (local only)
-├── 📁 scripts/               # Automation scripts
-└── 📁 caliper/               # Performance benchmarking
+├── 📁 config/                  # Core configuration files
+│   ├── core.yaml               # Peer configuration
+│   └── orderer.yaml            # Orderer configuration
+├── 📁 configtx/                # Channel configuration
+│   ├── configtx.yaml            # Main channel config
+│   └── 📁 org4/                # Dynamic org configs
+├── 📁 crypto/                  # Crypto config templates
+├── 📁 identities/              # Public certificates (shared)
+├── 📁 organizations/           # Private keys (local only)
+├── 📁 scripts/                 # Automation scripts
+└── 📁 caliper/                 # Performance benchmarking
 ```
 
 ---
@@ -93,7 +93,10 @@ network/
 
 ### Network Configuration (`network.config`)
 
- This configuration file contains all the necessary variables for the network definition, including the Hyperledger Fabric settings and the default identity to use.
+ This configuration file contains all the necessary variables for the network definition, including the Hyperledger Fabric settings and the default identity to use. 
+
+> [!TIP]  
+> You can configure it according to your requirements.
 
 ```bash
 # Fabric Version
@@ -125,29 +128,64 @@ CC_SRC_LANG="javascript"
 ### Initial Network Setup
 
 > [!NOTE]  
-> In production, the initial setup might be a little tricky since it requires strict cooperation and coordination among all the initial members of the network. 
+> In production, the initial setup might be a little tricky since it requires strict cooperation and coordination among all the initial network members. 
 
 > [!IMPORTANT]  
 > Before proceeeding, a leader organization should be chosen, ensuring critical operations are executed only once.
+
+#### Requirements Installation
 
 ```bash
 # Install Hyperledger Fabric binaries and dependencies
 cd network/scripts
 ./install-requirements.sh
+```
 
+> [!WARNING]  
+> After the above operation, please ensure that Hyperledger Fabric binaries are available under the `network/bin` folder.
+
+#### Cryptographic Material Generation
+
+Each organization must generate its own credentials (private keys and public certificates) using the provided configuration files. This increases security by ensuring private keys are never shared, while public certificates are distributed via the shared `network/identities` folder.
+
+```bash
 # 1️⃣ Generate cryptographic material for each organization
 ./network-prep.sh <crypto-config-file> <docker-compose-file>
+```
+> [!WARNING]  
+> Change `<crypto-config-file>` and `<docker-compose-file>` according to your environment.
 
+#### Genesis Block Generation
+
+The leader organization is responsible for **generating** and **distributing** the genesis block, which represents the initial configuration of the network.
+
+```bash
 # 2️⃣ Generate genesis block (leader only)
 ./network-init.sh
+```
 
+> [!NOTE]  
+> This block never changes and it is mainly used for channel creation and organization joining.
+
+#### Containers startup and channel joining
+
+After all organizations have generated their credentials and the genesis block has been distributed, each organization can start its Docker containers and join the channel.
+
+```bash
 # 3️⃣ Start Docker containers
 ./docker-up.sh <docker-compose-file>
 
 # 4️⃣ Join orderers and organizations to the channel
+
+# If this is an orderer organization:
 ./network-join-orderer.sh <orderer-hostname>
+
+# If this is a regular organization:
 ./network-join-organization.sh <org-domain>
 ```
+
+> [!WARNING]  
+> Change `<docker-compose-file>` and environment variables according to your setup.
 
 ### Chaincode Lifecycle
 
@@ -438,6 +476,29 @@ const resource = await contractManager.createResource([
 
 ---
 
+## Acknowledgments
+
+A big shoutout to the projects below for their awesome work and open-source contributions:
+
+<div style="display: flex; align-items: left;">
+    <a href="https://github.com/hyperledger/fabric">
+        <img src="https://avatars.githubusercontent.com/u/7657900?s=200&v=4"
+        alt="hyperledger" style="width: 50px; margin-right: 10px">
+    </a>
+    <a href="https://github.com/hyperledger-caliper/caliper">
+        <img src="https://avatars.githubusercontent.com/u/185365280?s=200&v=4"
+        alt="hyperledger" style="width: 50px; margin-right: 10px">
+    </a>
+    <a href="https://shields.io/">
+        <img src="https://avatars.githubusercontent.com/u/6254238?s=200&v=4" alt="shields.io" style="width: 50px; margin-right: 10px;">
+    </a>
+    <a href="https://simpleicons.org/">
+        <img src="https://avatars.githubusercontent.com/u/29872746?s=200&v=4" alt="simpleicons.org" style="width: 50px; margin-right: 10px;">
+    </a>
+</div>
+
+---
+
 ## 📚 Additional Resources
 
 - 📖 [Hyperledger Fabric Documentation](https://hyperledger-fabric.readthedocs.io/)
@@ -448,9 +509,9 @@ const resource = await contractManager.createResource([
 
 ## 📄 License
 
-Released under the [GNU](LICENSE) license.
+[![license-logo]](LICENSE)
 
-<div align="left">
+<div align="right">
 
 [![](https://img.shields.io/badge/Return-5D4ED3?style=flat&logo=ReadMe&logoColor=white)](#top)
 
