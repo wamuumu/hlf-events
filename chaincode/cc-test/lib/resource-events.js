@@ -17,8 +17,8 @@ class ResourceEvents extends Contract {
 			throw new Error(`The resource ${pid} already exists`);
 		
 		const resource = {
-			PID: pid,
-			URI: uri,
+			pid: pid,
+			uri: uri,
 			hash: hash,
 			timestamp: timestamp,
 			owners: owners,

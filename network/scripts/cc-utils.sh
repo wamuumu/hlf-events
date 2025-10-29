@@ -89,7 +89,7 @@ invoke_chaincode() {
     local org_domain=$1
     local peer_id=$2
 
-    TIMESTAMP=$(date +%s)
+    TIMESTAMP=$(date +%s000)
     PID="pid_test_${org_domain}"
     URI="https://example.com/resource/$PID"
     

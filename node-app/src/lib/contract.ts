@@ -37,16 +37,16 @@ export class ContractManager {
             throw error;
         }
         
-        const resource = utf8Decoder.decode(result);        
+        const resource = utf8Decoder.decode(result); 
         return JSON.parse(resource);
     }
 
-    public async readResource(args: (string | Uint8Array)[]): Promise<any> {
-        console.log(`[APP] Submit Transaction: ReadResource`);
+    public async readResourcesByTimestamp(args: (string | Uint8Array)[]): Promise<any> {
+        console.log(`[APP] Submit Transaction: ReadResourcesByTimestamp`);
 
         let result;
         try {
-            result = await this.contract.evaluateTransaction('ReadResource', ...args);
+            result = await this.contract.evaluateTransaction('GetResourcesByTimestamp', ...args);
         } catch (error) {
             throw error;
         }

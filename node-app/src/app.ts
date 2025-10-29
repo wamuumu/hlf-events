@@ -22,6 +22,7 @@ import { ContractManager } from './lib/contract';
         app.use('/api', router);
         app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
         app.set('contractManager', contract_manager);
+        app.set('eventManager', event_manager);
 
         const server = app.listen(config.PORT, () => {
             console.log(`[APP] Server is running on port ${config.PORT} in ${config.NODE_ENV} mode`);

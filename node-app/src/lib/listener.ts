@@ -10,6 +10,7 @@ export class EventManager {
     private channel_name: string;
     private chaincode_name: string;
     private events: CloseableAsyncIterable<ChaincodeEvent> | undefined;
+    private listeners: Array<(event: any) => void> = [];
 
     constructor(gateway: Gateway) {
         this.gateway = gateway;
@@ -47,12 +48,28 @@ export class EventManager {
         
         void this.readEvents(); // Don't await - run asynchronously
     }
+
+    public addListener(callback: (event: any) => void): void {
+        this.listeners.push(callback);
+    }
+
+    public removeListener(callback: (event: any) => void): void {
+        this.listeners = this.listeners.filter(listener => listener !== callback);
+    }
     
     private async readEvents(): Promise<void> {
         if (this.events) {
             try {
                 for await (const event of this.events) {
                     const payload = this.parseJson(event.payload);
+                    const eventData = {
+                        eventName: event.eventName,
+                        payload: payload,
+                        blockNumber: event.blockNumber?.toString(),
+                        transactionId: event.transactionId,
+                        timestamp: new Date().toISOString()
+                    };
+                    this.listeners.forEach(listener => listener(eventData));
                     console.log(`\n[CHAINCODE] Chaincode event received: ${event.eventName} -`, payload);
                 }
             } catch (error: unknown) {
