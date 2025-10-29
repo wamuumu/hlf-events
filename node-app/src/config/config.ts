@@ -16,7 +16,9 @@ interface Config {
   CONNECTION_RECONNECT_TIMEOUT: number;
   CONNECTION_RECONNECT_INTERVAL: number;
   CONNECTION_RECONNECT_MAX_TRIES: number;
-  CRYPTO_PATH: string;
+  PKEY_PATH: string;
+  CERT_PATH: string;
+  TLSCERT_PATH: string;
 }
 
 const config: Config = {
@@ -33,7 +35,9 @@ const config: Config = {
   CONNECTION_RECONNECT_TIMEOUT: Number(process.env.CONNECTION_RECONNECT_TIMEOUT) || 10000,
   CONNECTION_RECONNECT_INTERVAL: Number(process.env.CONNECTION_RECONNECT_INTERVAL) || 5000,
   CONNECTION_RECONNECT_MAX_TRIES: Number(process.env.CONNECTION_RECONNECT_MAX_TRIES) || 5,
-  CRYPTO_PATH: process.env.CRYPTO_PATH || '',
+  PKEY_PATH: process.env.PKEY_PATH || '',
+  CERT_PATH: process.env.CERT_PATH || '',
+  TLSCERT_PATH: process.env.TLSCERT_PATH || ''
 };
 
 export default config;

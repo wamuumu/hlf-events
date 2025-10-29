@@ -2,7 +2,6 @@ import * as grpc from '@grpc/grpc-js';
 import {  Identity,  Signer, signers, connect, hash, Gateway } from '@hyperledger/fabric-gateway';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import * as path from 'path';
 
 import config from '../config/config';
 
@@ -116,16 +115,16 @@ export class ConnectionManager {
         this.connection_details.gateway = undefined as unknown as Gateway;
     }
 
+    // TODO: Remove
     private resolvePaths(organization: OrganizationConfig, peer: PeerConfig, user: string): ConnectionProfile {
-        const crypto_path = path.resolve(config.CRYPTO_PATH, 'peerOrganizations', organization.domain);
         return {
             organization,
             peer,
             user,
             credentials: {
-                userKeyPath: path.resolve(crypto_path, 'users', `${user}@${organization.domain}`, 'msp', 'keystore'),
-                userCertPath: path.resolve(crypto_path, 'users', `${user}@${organization.domain}`, 'msp', 'signcerts'),
-                tlsCertPath: path.resolve(crypto_path, 'peers', `${peer.hostname}`, 'tls', 'ca.crt')
+                userKeyPath: config.PKEY_PATH,
+                userCertPath: config.CERT_PATH,
+                tlsCertPath: config.TLSCERT_PATH
             }
         };
     }
@@ -147,8 +146,7 @@ export class ConnectionManager {
     }
 
     private async createIdentity(): Promise<Identity> {
-        const certPath = await this.getFirstDirFileName(this.connection_profile.credentials.userCertPath);
-        const credentials = await fs.promises.readFile(certPath);
+        const credentials = await fs.promises.readFile(this.connection_profile.credentials.userCertPath);
         const organization = this.connection_profile.organization;
         if (!organization) {
             throw new Error(`Organization is undefined`);
@@ -160,19 +158,9 @@ export class ConnectionManager {
     }
 
     private async createSigner(): Promise<Signer> {
-        const key_path = await this.getFirstDirFileName(this.connection_profile.credentials.userKeyPath);
-        const pkey_pem = await fs.promises.readFile(key_path);
+        const pkey_pem = await fs.promises.readFile(this.connection_profile.credentials.userKeyPath);
         const pkey = crypto.createPrivateKey(pkey_pem);
         return signers.newPrivateKeySigner(pkey);
-    }
-
-    private async getFirstDirFileName(dir_path: string): Promise<string> {
-        const files = await fs.promises.readdir(dir_path);
-        const file = files[0];
-        if (!file) {
-            throw new Error(`No files in directory: ${dir_path}`);
-        }
-        return path.join(dir_path, file);
     }
 
     private monitorConnection(): void {
