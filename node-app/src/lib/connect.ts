@@ -117,7 +117,7 @@ export class ConnectionManager {
     }
 
     private resolvePaths(organization: OrganizationConfig, peer: PeerConfig, user: string): ConnectionProfile {
-        const crypto_path = path.resolve(__dirname, '..', '..', '..', 'network', 'organizations', 'peerOrganizations', organization.domain);
+        const crypto_path = path.resolve(config.CRYPTO_PATH, 'peerOrganizations', organization.domain);
         return {
             organization,
             peer,
