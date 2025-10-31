@@ -72,7 +72,7 @@ To quickly set up and run the Hyperledger Fabric network, follow these steps:
    ./test-5-orgs.sh
    ```
 > [!TIP]  
-> To better understand the basic setup, refer to the [Basic Setup](#basic-setup) section.
+> To better understand the basic setup, refer to the [Basic Setup](#-basic-setup) section.
    
 > [!IMPORTANT]  
 > This will create a ready-to-use local network with all the required components. To learn how to distribute the nodes and how to manage them, please refer to the instructions provided below.
@@ -262,7 +262,7 @@ The network supports dynamic addition and removal of organizations without requi
 #### Adding a New Organization
 
 > [!NOTE]  
-> In the following example, the [Basic Setup](#basic-setup) with 3 organizations is extended by adding a 4th organization (`org4.testbed.local`).
+> In the following example, the [Basic Setup](#-basic-setup) with 3 organizations is extended by adding a 4th organization (`org4.testbed.local`).
 
 Initially, the new organization must generate its cryptographic material and start its Docker containers, as the other organizations did during the initial setup. Its public certificates must also be shared via the `network/identities` folder.
 
@@ -620,7 +620,6 @@ A big shoutout to the projects below for their awesome work and open-source cont
 
 - 📖 [Hyperledger Fabric Documentation](https://hyperledger-fabric.readthedocs.io/)
 - 🔧 [Fabric Gateway SDK](https://hyperledger.github.io/fabric-gateway/)
-- 📊 [Hyperledger Caliper](https://hyperledger.github.io/caliper/)
 
 ---
 
