@@ -19,9 +19,9 @@
 
 * [🚀 Getting Started](#-getting-started)
 * [🧩 Project Overview](#-project-overview)
-  * [🌐 Network Module](#-network-module)
-  * [🧱 Chaincode Module](#-chaincode-module)
-  * [💻 Node.js Application Module](#-nodejs-application-module)
+* [🌐 Network Module](#-network-module)
+* [🧱 Chaincode Module](#-chaincode-module)
+* [💻 Node.js Application Module](#-nodejs-application-module)
 * [📚 Additional Resources](#-additional-resources)
 * [📄 License](#-license)
 
@@ -29,16 +29,16 @@
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### 🛠️ Prerequisites
 
 To run this project, ensure that all the following dependencies are installed and available: 
 
 | Tool | Version | Purpose |
 |------|---------|---------|
 | 🐳 [Docker](https://www.docker.com/) | Latest | Container runtime |
-| 📦 [Node.js](https://nodejs.org/) | 18+ | Application runtime |
+| 🟢 [Node.js](https://nodejs.org/) | 18+ | Application runtime |
 
-### Installation
+### 📥 Installation
 
 To get started with this project, first clone the repository to your local machine:
 
@@ -47,6 +47,35 @@ To get started with this project, first clone the repository to your local machi
 git clone https://github.com/wamuumu/hlf-events.git
 cd hlf-events
 ```
+
+### ⚡ Quick Start
+
+To quickly set up and run the Hyperledger Fabric network, follow these steps:
+
+1. **Install the Requirements**:
+   ```bash
+   cd network/scripts
+   ./install-requirements.sh
+   ```
+
+2. **Package the Chaincode**:
+   ```bash
+   ./chaincode-package.sh
+   ```
+
+3. **Run the Test Networks**:
+   ```bash
+   # Run a test network with 3 organizations and 3 orderers
+   ./test-3-orgs.sh 
+
+   # Run a test network with 5 (3 + 2 dynamically added) organizations and 3 orderers
+   ./test-5-orgs.sh
+   ```
+> [!TIP]  
+> To better understand the basic setup, refer to the [Basic Setup](#basic-setup) section.
+   
+> [!IMPORTANT]  
+> This will create a ready-to-use local network with all the required components. To learn how to distribute the nodes and how to manage them, please refer to the instructions provided below.
 
 ---
 
@@ -91,9 +120,7 @@ network/
 
 ### ⚙️ Configuration
 
-### Network Configuration (`network.config`)
-
- This configuration file contains all the necessary variables for the network definition, including the Hyperledger Fabric settings and the default identity to use. 
+The (`network.config`) configuration file contains all the necessary variables for the network definition, including the Hyperledger Fabric settings and the default identity to use.
 
 > [!TIP]  
 > You can configure it according to your requirements.
@@ -120,18 +147,18 @@ CC_SRC_LANG="javascript"
 
 ---
 
-## 🔧 Network Operations
+### 🔧 Network Operations
 
 > [!IMPORTANT]  
-> All scripts related to network operations must be executed from the `network/scripts/` directory.
+> All scripts related to network operations must be executed from the `network/scripts/` directory. Furthermore, please refer to the [Script Reference](#-script-reference) section for detailed information about each script and its parameters.
 
 > [!NOTE]  
-> In production, network operations might be a little tricky since they often require strict cooperation and coordination among all the network members.
+> In a production environment, network federated operations might be a little tricky since they often require strict cooperation and coordination among all the network members.
 
-### Initial Network Setup
+### 📦 Initial Network Setup
 
 > [!IMPORTANT]  
-> Before proceeeding, a leader organization should be chosen, ensuring critical operations are executed only once.
+> Before proceeding, a leader organization should be chosen, ensuring critical operations are executed only once.
 
 #### Requirements Installation
 
@@ -157,15 +184,15 @@ Each organization must generate its own credentials (private keys and public cer
 
 #### Genesis Block Generation
 
-The leader organization is responsible for **generating** and **distributing** the genesis block, which represents the initial configuration of the network.
+The leader organization is responsible for **generating** and **distributing** the genesis block. This block is saved under the `network/channel` directory and it is mainly used for channel creation and organization joining
 
 ```bash
 # 2️⃣ Generate genesis block (leader only)
 ./network-init.sh
 ```
 
-> [!NOTE]  
-> This block never changes and it is mainly used for channel creation and organization joining.
+> [!DANGER]  
+> In production environments, `network/identities` and `network/channel` directories must be shared among all organizations.
 
 #### Containers startup and channel joining
 
@@ -185,15 +212,15 @@ After all organizations have generated their credentials and the genesis block h
 ```
 
 > [!TIP]  
-> Organizations and orderers differ in their roles and responsibilities within the network.
+> Orderers and peers have different roles: **peers** execute smart contracts, maintain a copy of the channel ledger and host the world state, while **orderers** are responsible for ordering transactions into blocks and ensuring consistency across the network.
 
-### Chaincode Lifecycle
+### 🔑 Chaincode Lifecycle
 
-The chaincode defines the business logic of the blockchain application that runs on the organizations' peers. 
+The chaincode defines the business logic of the blockchain application that runs on the peer nodes. 
 
 #### Chaincode Installation
 
-The chaincode must be installed on all peers that will endorse transactions. This is done by packaging the chaincode in a **tarball** and then, for simplicity, installing it on each peer.
+Chaincode source code and metadata are bundled into a single file, typically a tarball, with a unique **package ID**. This package is the deployable unit that gets installed on the peers of each organization.
 
 ```bash
 # 1️⃣ Package the chaincode 
@@ -205,7 +232,7 @@ The chaincode must be installed on all peers that will endorse transactions. Thi
 
 #### Chaincode Approval
 
-Once the chaincode is installed, each organization must approve its definition. This ensures that all organizations agree on the chaincode that will be used.
+Once the chaincode is installed, each organization must formally approve its definition (e.g. name, version and endorsement policies) for the channel. This ensures that all the members of the federation agree on the same chaincode.
 
 ```bash
 # 3️⃣ Approve chaincode (each organization)
@@ -213,11 +240,11 @@ Once the chaincode is installed, each organization must approve its definition. 
 ```
 
 > [!IMPORTANT]  
-> In order to reach consensus, all the organizations must approve the chaincode definition.
+> For this project, in order to reach consensus, all the organizations must approve the chaincode definition.
 
 #### Chaincode Commitment
 
-After all organizations have approved the chaincode, it can be committed to the channel. This makes the chaincode available for use in transactions.
+After all organizations have approved the chaincode, it can be **committed** to the channel. This makes the chaincode active and ready to execute invoke and query transactions.
 
 ```bash
 # 4️⃣ Commit chaincode to channel (only once)
@@ -230,57 +257,126 @@ After all organizations have approved the chaincode, it can be committed to the 
 
 ### 🔄 Dynamic Organization Management
 
+The network supports dynamic addition and removal of organizations without requiring a complete network restart. This is achieved through configuration updates and channel reconfiguration.
+
 #### Adding a New Organization
 
+> [!NOTE]  
+> In the following example, the [Basic Setup](#basic-setup) with 3 organizations is extended by adding a 4th organization (`org4.testbed.local`).
+
+Initially, the new organization must generate its cryptographic material and start its Docker containers, as the other organizations did during the initial setup. Its public certificates must also be shared via the `network/identities` folder.
+
 ```bash
-# 1️⃣ New org: Generate credentials
+# 1️⃣ Org 4: Generate credentials
 ./network-prep.sh crypto-config-org4.yaml docker-compose-org4.yaml
 
-# 2️⃣ New org: Start containers
+# 2️⃣ Org 4: Start containers
 ./docker-up.sh docker-compose-org4.yaml
+```
 
-# 3️⃣ Existing org: Create join request
+Then, an existing organization (e.g. `org1.testbed.local`) must generate a join request to add the new organization to the channel. This request is saved as a configuration update proposal in the file `org4_update_in_envelope.pb`, located by default under the shared `network/channel` directory. All existing network members must approve this proposal before it can be committed and the new organization becomes an official channel member.
+
+```bash
+# 3️⃣ Existing org (e.g. org1.testbed.local): Create join request
 ./network-join-request.sh configtx-org4.yaml org1.testbed.local
 
 # 4️⃣ All orgs: Approve join request
 ./network-approve-update.sh org4_update_in_envelope.pb org1.testbed.local
 ./network-approve-update.sh org4_update_in_envelope.pb org2.testbed.local
+./network-approve-update.sh org4_update_in_envelope.pb org3.testbed.local
 
-# 5️⃣ Any org: Commit update
+# 5️⃣ Existing org (e.g. org1.testbed.local): Commit update
 ./network-commit-update.sh org4_update_in_envelope.pb org1.testbed.local
-
-# 6️⃣ New org: Join channel and set anchor peer
-./network-join-organization.sh org4.testbed.local
-./network-set-anchor-peer.sh org4.testbed.local 1
-
-# 7️⃣ Install and approve chaincode
-./chaincode-install.sh org4.testbed.local
-./chaincode-approve.sh org4.testbed.local  # All orgs must approve
-./chaincode-commit.sh org1.testbed.local   # Once
 ```
 
-#### Removing an Organization
+At this point, the new organization has been successfully added to the channel. As with the existing members, it can now have its peer/s join the channel and set its anchor peer.
+
+The **anchor peer** allows peer discovery and cross-organization communication within the channel via the gossip protocol.
+
+> [!NOTE]  
+> This step is required now because the new organization was not part of the channel when the original members set their anchor peers.
+
+```bash
+# 6️⃣ Org 4: Join channel and set anchor peer
+./network-join-organization.sh org4.testbed.local
+./network-set-anchor-peer.sh org4.testbed.local 1
+```
+
+Finally, the chaincode must be installed on the new organization’s peer/s, approved and then committed once again on the channel.
+
+> [!DANGER]  
+> After the new organization has joined the channel, all the federation members must approve the chaincode definition again to include the new member.
+
+```bash
+# 7️⃣ Org 4: Install the chaincode
+./chaincode-install.sh org4.testbed.local
+
+# All orgs (including org4): Approve the chaincode again
+./chaincode-approve.sh org1.testbed.local 
+./chaincode-approve.sh org2.testbed.local 
+./chaincode-approve.sh org3.testbed.local 
+./chaincode-approve.sh org4.testbed.local 
+
+# Existing org: Commit the chaincode again (only once)
+./chaincode-commit.sh org1.testbed.local 
+```
+
+#### Removing an Existing Organization
+
+As for adding a new organization, the removal process is almost the same, but in reverse order. An existing organization (e.g. `org1.testbed.local`) must create a leave request for the organization to be removed (e.g. `org4.testbed.local`). This request must then be approved by the majority of the other members before it can be committed.
 
 ```bash
 # 1️⃣ Create leave request
-./network-leave-request.sh configtx-org4.yaml org4.testbed.local
+./network-leave-request.sh configtx-org4.yaml org1.testbed.local
 
 # 2️⃣ Approve removal (majority required)
 ./network-approve-update.sh org4_update_in_envelope.pb org1.testbed.local
 ./network-approve-update.sh org4_update_in_envelope.pb org2.testbed.local
+./network-approve-update.sh org4_update_in_envelope.pb org3.testbed.local
 
 # 3️⃣ Commit removal
 ./network-commit-update.sh org4_update_in_envelope.pb org1.testbed.local
 
-# 4️⃣ Leaving org: Clean up
+# 4️⃣ Leaving org: Clean up credentials and stop containers
 ./network-leave-organization.sh org4.testbed.local --hard
 ./docker-down.sh docker-compose-org4.yaml
 ```
 
-### Test the network with basic setup
+---
+
+### 📜 Script Reference
+
+| Script | Description | Parameters | Example |
+|---------|--------------|-------------|----------|
+| `install-requirements.sh` | Installs Hyperledger Fabric binaries and dependencies. | *(none)* | `./install-requirements.sh` |
+| `network-prep.sh` | Generates the private credentials and create/add the public identity to the shared folder. | `<crypto-config.yaml>` `<docker-compose.yaml>` | `./network-prep.sh crypto-config-org1.yaml docker-compose-org1.yaml` |
+| `network-init.sh` | Creates the genesis block (leader org only). | *(none)* | `./network-init.sh` |
+| `docker-up.sh` | Starts network containers defined in the given compose file. | `<docker-compose.yaml>` | `./docker-up.sh docker-compose-org1.yaml` |
+| `docker-down.sh` | Stops and removes containers for the given organization. If the optional `--hard` flag is provided, it also prunes volumes and removes orphaned containers. | `<docker-compose.yaml>` `[--hard]` | `./docker-down.sh docker-compose-org1.yaml`<br>`./docker-down.sh docker-compose-org1.yaml --hard` |
+| `network-join-orderer.sh` | Joins an orderer organization to the channel. | `<orderer-hostname>` | `./network-join-orderer.sh orderer.ord1.testbed.local` |
+| `network-join-organization.sh` | Joins a peer organization to the channel. | `<org-domain>` | `./network-join-organization.sh org1.testbed.local` |
+| `network-set-anchor-peer.sh` | Sets the anchor peer for the given organization. | `<org-domain>` `<peer-id>` | `./network-set-anchor-peer.sh org1.testbed.local 1` |
+| `chaincode-package.sh` | Packages the chaincode source into a deployable tarball. | *(none)* | `./chaincode-package.sh` |
+| `chaincode-install.sh` | Installs the packaged chaincode on an organization’s peer(s). | `<org-domain>` | `./chaincode-install.sh org1.testbed.local` |
+| `chaincode-approve.sh` | Approves the chaincode definition for an organization. | `<org-domain>` | `./chaincode-approve.sh org1.testbed.local` |
+| `chaincode-commit.sh` | Commits the chaincode definition to the channel. | `<org-domain>` | `./chaincode-commit.sh org1.testbed.local` |
+| `chaincode-invoke.sh` | Executes a transaction (invoke) on the chaincode. **For testing only.** | `<org-domain>` `<peer-id>` | `./chaincode-invoke.sh org1.testbed.local 1` |
+| `chaincode-query.sh`  | Queries the chaincode state. **For testing only.** | `<org-domain>` `<peer-id>` | `./chaincode-query.sh org1.testbed.local 1` |
+| `network-join-request.sh` | Creates a join request proposal to add a new organization. | `<configtx.yaml>` `<requester-org>` | `./network-join-request.sh configtx-org4.yaml org1.testbed.local` |
+| `network-approve-update.sh` | Approves a pending channel update. | `<proposal-file>` `<org-domain>` | `./network-approve-update.sh org4_update_in_envelope.pb org2.testbed.local` |
+| `network-commit-update.sh` | Commits a channel update after approvals. | `<proposal-file>` `<org-domain>` | `./network-commit-update.sh org4_update_in_envelope.pb org1.testbed.local` |
+| `network-leave-request.sh` | Creates a request to remove an organization from the channel. | `<configtx.yaml>` `<requester-org>` | `./network-leave-request.sh configtx-org4.yaml org1.testbed.local` |
+| `network-leave-organization.sh` | Removes the organization public identity from the shared folder. If the optional `--hard` flag is provided, it also deletes the local private credentials. | `<org-domain>` `[--hard]` | `./network-leave-organization.sh org4.testbed.local --hard` |
+
+> [!NOTE]  
+> Identity parameters (i.e. `<org-domain>`, `<orderer-hostname>`) are used to differentiate between the various members in a local development setup. In a production environment, these should be removed, as the scripts should understand the identity from the environment / configuration files (e.g. `network.config`)
+
+---
+
+### 🏗️ Basic Setup
 
 * **3 Ordering Nodes** (`Raft consensus`)
-* **3 Peer Organizations**
+* **3 Peer Organizations** (`1 Peer each`)
 * **1 Application Channel** (`mychannel`)
 * **1 Deployed Chaincode** (`cc-test`)
 
@@ -335,21 +431,21 @@ graph TB
 ```
 ---
 
-## 🛡️ Security Considerations
+### 🛡️ Security Considerations
 
-- 🔐 **Private keys** stored locally in `organizations/` (never shared)
-- 📜 **Public certificates** shared via `identities/` folder (trust)
+- 🔐 **Private keys** are stored locally in the `network/organizations` directory (never shared)
+- 📜 **Public certificates** are shared via the `network/identities` folder (ensure trust)
 - 🔏 **TLS enabled** for all communications
-- ✍️ **Digital signatures** for identity verification
+- ✍️ **Digital signatures** are used for identity verification. For each operation, a challenge is created to test if there is a match between the private credentials and the shared public certificate (useful in local development setups)
 - 🎫 **MSP-based** access control
 
 ---
 
-## 📊 Performance Testing
+### 📊 Performance Testing
 
 Integrated [Hyperledger Caliper](https://hyperledger.github.io/caliper/) for comprehensive benchmarking.
 
-### Available Benchmarks
+#### Available Benchmarks
 
 | Benchmark | Focus | Configuration |
 |-----------|-------|---------------|
@@ -358,7 +454,7 @@ Integrated [Hyperledger Caliper](https://hyperledger.github.io/caliper/) for com
 | **Success Ratio** | Transaction reliability | 2 workers, mixed load |
 | **Resource Usage** | CPU/Memory/Network | Docker monitoring |
 
-### Running Benchmarks
+#### Running the Benchmarks
 
 ```bash
 cd network/caliper
@@ -375,7 +471,7 @@ cp networks/network-config.template.yaml networks/network-config.yaml
 # Results are saved in ./results/
 ```
 
-### Sample Output
+#### Sample Output
 
 ```
 +----------------+--------+--------+--------+--------+--------+--------+
@@ -404,7 +500,7 @@ chaincode/
 
 ---
 
-### Resource Events Contract
+### 📜 Resource Events Contract
 
 | Function | Type | Description |
 |----------|------|-------------|
@@ -412,7 +508,7 @@ chaincode/
 | `ReadResource` | Evaluate | Retrieves a resource by ID |
 | `ReadAllResources` | Evaluate | Returns all resources |
 
-### Resource Schema
+### 🗂️ Resource Schema
 
 ```javascript
 {
@@ -444,7 +540,7 @@ node-app/
 
 ```
 
-### Setup
+### ⚙️ Setup
 
 ```bash
 cd node-app
@@ -461,7 +557,7 @@ npm run build
 npm start
 ```
 
-### Application Architecture
+### 🏛️ Application Architecture
 
 ```typescript
 // Key Components
@@ -470,14 +566,14 @@ EventManager (listener.ts)       →   Listens to chaincode events
 ContractManager (contract.ts)    →   Submits transactions
 ```
 
-### Features
+### ✨ Features
 
 - ✅ **Automatic connection management** with retry logic
 - ✅ **Real-time event streaming** from chaincode
 - ✅ **Type-safe contract interactions**
 - ✅ **Graceful shutdown handling**
 
-### Example Usage
+### 📌 Example Usage
 
 ```typescript
 // In app.ts (main)
@@ -497,7 +593,7 @@ const resource = await contractManager.createResource([
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 A big shoutout to the projects below for their awesome work and open-source contributions:
 
