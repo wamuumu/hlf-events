@@ -36,7 +36,7 @@ To run this project, ensure that all the following dependencies are installed an
 | Tool | Version | Purpose |
 |------|---------|---------|
 | 🐳 [Docker](https://www.docker.com/) | Latest | Container runtime |
-| 🟢 [Node.js](https://nodejs.org/) | 18+ | Application runtime |
+| 🧰 [Node.js](https://nodejs.org/) | 18+ | Application runtime |
 
 ### 📥 Installation
 
@@ -373,7 +373,7 @@ As for adding a new organization, the removal process is almost the same, but in
 
 ---
 
-### 🏗️ Basic Setup
+### 🖧 Basic Setup
 
 * **3 Ordering Nodes** (`Raft consensus`)
 * **3 Peer Organizations** (`1 Peer each`)
