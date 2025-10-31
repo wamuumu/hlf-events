@@ -85,9 +85,9 @@ This project consists of **three main components**, forming a complete blockchai
 
 | Module             | Description                                                              | Folder       |
 | ------------------ | ------------------------------------------------------------------------ | ------------ |
-| 🌐 **Network**    | Complete Hyperledger Fabric network with dynamic organization management | `network/`   |
-| 🧱 **Chaincode**   | Smart contract defining resource lifecycle operations                    | `chaincode/` |
-| 💻 **Node.js App** | Event-driven TypeScript client for invoking and monitoring transactions  | `node-app/`  |
+| [🌐 **Network**](#-network-module)    | Complete Hyperledger Fabric network with dynamic organization management | `network/`   |
+| [🧱 **Chaincode**](#-chaincode-module)   | Smart contract defining resource lifecycle operations                    | `chaincode/` |
+| [💻 **Node.js App**](#-nodejs-application-module) | Event-driven TypeScript client for invoking and monitoring transactions  | `node-app/`  |
 
 ---
 
