@@ -375,60 +375,21 @@ As for adding a new organization, the removal process is almost the same, but in
 
 ### 🖧 Basic Setup
 
-* **3 Ordering Nodes** (`Raft consensus`)
-* **3 Peer Organizations** (`1 Peer each`)
-* **1 Application Channel** (`mychannel`)
-* **1 Deployed Chaincode** (`cc-test`)
-
 ```bash
 # Setup a ready-to-use network with 3 organizations and 3 orderers
 ./test-3-orgs.sh
 ```
 
-```mermaid
-graph TB
-    %% ============= ORGANIZATIONS =============
-    subgraph Org1["🏢 Organization 1"]
-        P1[Peer0.Org1<br/>Ledger<br/>Chaincode: cc-test]
-    end
+In this scenario, three peer organizations (`R1, R2, R3`) and three ordering organizations (`R4, R5, R6`) have jointly decided that they will establish a network. This network has a configuration, `CC1`, which all of the organizations have agreed to and which lists the definition of the organizations as well as the policies which define the roles each organization will play on the channel.
 
-    subgraph Org2["🏢 Organization 2"]
-        P2[Peer0.Org2<br/>Ledger<br/>Chaincode: cc-test]
-    end
+On this channel, R1, R2 and R3 will join peers, named P1, P2 and P3, to the **channel** `mychannel`, while R4, R5 and R6 owns respectively O1, O2 and O3, the ordering services of the channel. All of these nodes will contain a copy of the **ledger** (`L1`) of the channel, which is where transactions are recorded.
 
-    subgraph Org3["🏢 Organization 3"]
-        P3[Peer0.Org3<br/>Ledger<br/>Chaincode: cc-test]
-    end
+In this example, the chaincode `cc-test` has been installed on every peer.
 
-    %% ============= CHANNEL =============
-    subgraph Channel["📡 Channel: mychannel"]
-        CH[Channel Configuration Block]
-    end
+> [!NOTE]  
+> Ordering services don’t have the chaincode installed on them, as ordering nodes don’t propose transactions.
 
-    %% ============= ORDERING SERVICE =============
-    subgraph Ordering["🧱 Ordering Service (Raft)"]
-        O1[Orderer 1]
-        O2[Orderer 2]
-        O3[Orderer 3]
-
-        O1 <--> O2
-        O2 <--> O3
-        O3 <--> O1
-    end
-
-    %% ============= CONNECTIONS =============
-    P1 --> Channel
-    P2 --> Channel
-    P3 --> Channel
-    Channel <--> Ordering
-
-    %% ============= STYLING =============
-    style Org1 fill:#e1f5ff,stroke:#90caf9,stroke-width:1px,color:black
-    style Org2 fill:#e8f5e9,stroke:#a5d6a7,stroke-width:1px,color:black
-    style Org3 fill:#fff3e0,stroke:#ffcc80,stroke-width:1px,color:black
-    style Channel fill:#fff9c4,stroke:#fdd835,stroke-width:1px,color:black
-    style Ordering fill:#ffebee,stroke:#ef9a9a,stroke-width:1px,color:black
-```
+![](./documentation/assets/architecture.png)
 ---
 
 ### 🛡️ Security Considerations
