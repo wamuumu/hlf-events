@@ -380,7 +380,7 @@ As for adding a new organization, the removal process is almost the same, but in
 ./test-3-orgs.sh
 ```
 
-In this scenario, three peer organizations (`R1, R2, R3`) and three ordering organizations (`R4, R5, R6`) have jointly decided that they will establish a network. This network has a configuration, `CC1`, which all of the organizations have agreed to and which lists the definition of the organizations as well as the policies which define the roles each organization will play on the channel.
+In this scenario, three peer organizations (`R1, R2, R3`) and three ordering organizations (`R4, R5, R6`) have jointly decided that they will establish a network. This network has a configuration, `CC1`, which all of the organizations have agreed to and which lists the definition of the organizations as well as the policies which define the roles each organization will play on the channel (i.e. `configtx.yaml` file).
 
 On this channel, R1, R2 and R3 will join peers, named P1, P2 and P3, to the **channel** `mychannel`, while R4, R5 and R6 owns respectively O1, O2 and O3, the ordering services of the channel. All of these nodes will contain a copy of the **ledger** (`L1`) of the channel, which is where transactions are recorded.
 
