@@ -9,46 +9,75 @@ export FABRIC_VERSION
 
 # General Files
 GENESIS_BLOCK=${NETWORK_CHN_PATH}/genesis.block
-CC_PKG_PATH=${NETWORK_PKG_PATH}/${CC_NAME}.tar.gz
-ORD_JSON_FILE=${NETWORK_IDS_PATH}/orderers.json
-ORG_JSON_FILE=${NETWORK_IDS_PATH}/organizations.json
+CC_PKG_PATH=${NETWORK_PKG_PATH}/${CC_NAME}_${CC_VERSION}.tar.gz
 
 set_orderer() {
-    local orderer=$(jq -r ".\"$1\"" ${ORD_JSON_FILE})
-
-    export ORDERER_ADDR=$(echo "$orderer" | jq -r '.address')
-    export ORDERER_ADMIN_ADDR=$(echo "$orderer" | jq -r '.adminListenAddress')
-    export ORDERER_HOST=$(echo "$orderer" | jq -r '.ordHost')
-    export ORDERER_ADMIN_TLS_CA=$(echo "$orderer" | jq -r '.tlsCa')
-    export ORDERER_ADMIN_TLS_SIGN_CERT=$(echo "$orderer" | jq -r '.tlsSignCert')
-    export ORDERER_ADMIN_TLS_PRIVATE_KEY=$(echo "$orderer" | jq -r '.tlsPrivateKey')
-
-    echo "Setting environment for ${ORDERER_HOST}:"
-    echo "  Address: ${ORDERER_ADDR}"
-    echo "  Admin Address: ${ORDERER_ADMIN_ADDR}"
-    echo "  TLS CA: ${ORDERER_ADMIN_TLS_CA}"
-    echo "  TLS Sign Cert: ${ORDERER_ADMIN_TLS_SIGN_CERT}"
-    echo "  TLS Private Key: ${ORDERER_ADMIN_TLS_PRIVATE_KEY}"
-}
-
-set_organization_peer() {
-    local organization=$(jq -r ".\"$1\"" ${ORG_JSON_FILE})
-    local peer=$(echo "$organization" | jq -r ".peers[$2 - 1]")
-
-    # Check if peer exists or is null
-    if [[ -z "$peer" || "$peer" == "null" ]]; then
-        echo "Error: Peer index $2 does not exist for organization $1. Setting it to the first peer (anchor) by default..."
-        peer=$(echo "$organization" | jq -r ".peers[0]")
+    local orderer_hostname=$1
+    local ord_domain=$(echo "$orderer_hostname" | cut -d'.' -f2-)
+    local endpoints_file="${NETWORK_IDS_PATH}/ordererOrganizations/${ord_domain}/endpoints.json"
+    
+    if [ ! -f "${endpoints_file}" ]; then
+        echo "Error: Endpoints file ${endpoints_file} does not exist."
+        exit 1
     fi
 
-    # Set the peer environment variables
-    export CORE_PEER_LOCALMSPID=$(echo "$peer" | jq -r '.localMspId')
-    export CORE_PEER_TLS_ROOTCERT_FILE=$(echo "$peer" | jq -r '.tlsRootCertFile')
-    export CORE_PEER_MSPCONFIGPATH=$(echo "$peer" | jq -r '.mspConfigPath')
-    export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.address')
-    export CORE_PEER_TLS_ENABLED=$(echo "$peer" | jq -r '.tlsEnabled')
+    local orderer=$(jq -r "map(select(.hostname == \"$orderer_hostname\")) | .[0]" "$endpoints_file")
 
-    echo "Setting environment for ${CORE_PEER_LOCALMSPID}:"
+    if [ -z "$orderer" ]; then
+        echo "Error: Orderer with hostname '$2' not found in $1."
+        exit 1
+    fi
+
+    export ORDERER_DOMAIN=$(echo "$orderer" | jq -r '.domain')
+    export ORDERER_HOSTNAME=$(echo "$orderer" | jq -r '.hostname')
+    export ORDERER_ADDRESS=$(echo "$orderer" | jq -r '.address')
+    export ORDERER_ADMIN_ADDRESS=$(echo "$orderer" | jq -r '.adminAddress')
+
+    # NOTE: these can be get from both organizations and identities folders, since they are public
+    export ORDERER_TLS_CA="${NETWORK_IDS_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/msp/tlscacerts/tlsca.${ORDERER_DOMAIN}-cert.pem"
+    export ORDERER_TLS_SIGN_CERT="${NETWORK_IDS_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/tls/server.crt"
+
+    # NOTE: this is private and should not be in the shared identity folder
+    export ORDERER_TLS_PRIVATE_KEY="${NETWORK_ORG_PATH}/ordererOrganizations/${ORDERER_DOMAIN}/orderers/${ORDERER_HOSTNAME}/tls/server.key"
+
+    echo "Setting environment for ${ORDERER_HOSTNAME}:"
+    echo "  Address: ${ORDERER_ADDRESS}"
+    echo "  Admin Address: ${ORDERER_ADMIN_ADDRESS}"
+    echo "  TLS CA: ${ORDERER_TLS_CA}"
+    echo "  TLS Sign Cert: ${ORDERER_TLS_SIGN_CERT}"
+    echo "  TLS Private Key: ${ORDERER_TLS_PRIVATE_KEY}"
+}
+
+set_peer() {
+    local org_domain=$1
+    local peer_id=$2
+    local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
+
+    if [ ! -f "${endpoints_file}" ]; then
+        echo "Error: Endpoints file ${endpoints_file} does not exist."
+        exit 1
+    fi
+
+    local peer=$(jq -r --arg id "$peer_id" '.[$id]' "$endpoints_file")
+
+    if [ -z "$peer" ]; then
+        echo "Error: Peer with ID '$peer_id' not found in $endpoints_file."
+        exit 1
+    fi
+
+    export PEER_HOSTNAME=$(echo "$peer" | jq -r '.hostname')
+    export PEER_DOMAIN=$(echo "$PEER_HOSTNAME" | cut -d'.' -f2-)
+    export CORE_PEER_TLS_ENABLED=true
+    export CORE_PEER_LOCALMSPID=$(echo "$peer" | jq -r '.localMspId')
+    export CORE_PEER_ADDRESS=$(echo "$peer" | jq -r '.address')
+    
+    # NOTE: this can be get from both organizations and identities folders, since it is public
+    export CORE_PEER_TLS_ROOTCERT_FILE="${NETWORK_IDS_PATH}/peerOrganizations/${PEER_DOMAIN}/msp/tlscacerts/tlsca.${PEER_DOMAIN}-cert.pem"
+    
+    # NOTE: this is private and should not be in the shared identity folder
+    export CORE_PEER_MSPCONFIGPATH="${NETWORK_ORG_PATH}/peerOrganizations/${PEER_DOMAIN}/users/Admin@${PEER_DOMAIN}/msp"
+
+    echo "Setting environment for ${PEER_HOSTNAME} (ID: $2):"
     echo "  Address: ${CORE_PEER_ADDRESS}"
     echo "  Local MSP ID: ${CORE_PEER_LOCALMSPID}"
     echo "  TLS Root Cert: ${CORE_PEER_TLS_ROOTCERT_FILE}"

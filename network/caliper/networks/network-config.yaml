@@ -1,0 +1,29 @@
+name: "Minimal Fabric Benchmark Network"
+version: "2.0.0"
+
+caliper:
+  blockchain: fabric 
+
+info:
+  version: "1.0"
+  size: 3 Orgs
+  consensus: Raft
+
+channels:
+  - channelName: mychannel
+    contracts:
+      - id: cc-test
+
+organizations:
+  - mspid: Org1MSP
+    identities:
+      certificates:
+        - name: Admin
+          admin: true
+          clientPrivateKey:
+            path: ../organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/keystore/priv_sk
+          clientSignedCert:
+            path: ../organizations/peerOrganizations/org1.testbed.local/users/Admin@org1.testbed.local/msp/signcerts/Admin@org1.testbed.local-cert.pem
+    connectionProfile:
+      path: ../organizations/peerOrganizations/org1.testbed.local/connection-org1.json
+      discover: true

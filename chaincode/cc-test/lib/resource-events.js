@@ -17,8 +17,8 @@ class ResourceEvents extends Contract {
 			throw new Error(`The resource ${pid} already exists`);
 		
 		const resource = {
-			PID: pid,
-			URI: uri,
+			pid: pid,
+			uri: uri,
 			hash: hash,
 			timestamp: timestamp,
 			owners: owners,
@@ -37,10 +37,55 @@ class ResourceEvents extends Contract {
 			throw new Error(`The resource ${pid} does not exist`);
 		
 		const resourceJSON = await ctx.stub.getState(pid);
-		ctx.stub.setEvent('ReadResource', resourceJSON);
 		return resourceJSON.toString();
 	}
 
+	// GetResourcesByTimestamp returns all resources within the given timestamp range.
+	async GetResourcesByTimestamp(ctx, startTs, endTs) {
+		const allResults = [];
+		const iterator = await ctx.stub.getStateByRange("", "");
+
+		while (true) {
+			const res = await iterator.next();
+			if (res.value && res.value.value.toString()) {
+				const resource = JSON.parse(res.value.value.toString("utf8"));
+
+				// ensure timestamp is numeric for comparison
+				const ts = Number(resource.timestamp);
+				if (ts >= Number(startTs) && ts <= Number(endTs)) {
+					allResults.push(resource);
+				}
+			}
+			if (res.done) {
+				await iterator.close();
+				break;
+			}
+		}
+		return JSON.stringify(allResults);
+	}
+
+	// ReadAllResources returns all resources found in the world state.
+	async ReadAllResources(ctx) {
+		const allResults = [];
+		const iterator = await ctx.stub.getStateByRange('', '');
+		let result = await iterator.next();
+		while (!result.done) {
+			const strValue = result.value.value.toString('utf8');
+			let record;
+			try {
+				record = JSON.parse(strValue);
+			} catch (err) {
+				console.log(err);
+				record = strValue;
+			}
+			allResults.push(record);
+			result = await iterator.next();
+		}
+		await iterator.close();
+		return JSON.stringify(allResults);
+	}
+
+	// ResourceExists returns true when resource with given id exists in world state.
 	async ResourceExists(ctx, pid) {
 		const resourceJSON = await ctx.stub.getState(pid);
 		return resourceJSON && resourceJSON.length > 0;

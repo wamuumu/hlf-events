@@ -1,42 +1,10 @@
 #!/bin/bash
 
-. set-env.sh
-
-mkdir -p ${NETWORK_LOG_PATH}/chaincode
+. ids-utils.sh
 
 calculate_package_id() {
-    export PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PKG_PATH})
-    echo "Calculated package ID: ${PACKAGE_ID}"
-}
-
-peer_install_chaincode() {
-    set_organization_peer $1 $2 >> ${NETWORK_LOG_PATH}/chaincode/install.log 2>&1
-    peer lifecycle chaincode install ${CC_PKG_PATH} >> ${NETWORK_LOG_PATH}/chaincode/install.log 2>&1
-    echo "Chaincode installed on peer ${CORE_PEER_LOCALMSPID} (${CORE_PEER_ADDRESS})"
-}
-
-approve_chaincode() {
-
-    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
-
-    ORG_COUNT=$(jq -r 'length' ${ORG_JSON_FILE})
-
-    for ((i=1; i<=ORG_COUNT; i++)); do
-        set_organization_peer $i 1 >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
-
-        peer lifecycle chaincode approveformyorg \
-            -o ${ORDERER_ADDR} \
-            --ordererTLSHostnameOverride ${ORDERER_HOST} \
-            --tls \
-            --cafile ${ORDERER_ADMIN_TLS_CA} \
-            --channelID ${NETWORK_CHN_NAME} \
-            --name ${CC_NAME} \
-            --version ${CC_VERSION} \
-            --package-id ${PACKAGE_ID} \
-            --sequence ${CC_SEQUENCE} \
-            >> ${NETWORK_LOG_PATH}/chaincode/approve.log 2>&1
-        echo "Chaincode approved for organization ${CORE_PEER_LOCALMSPID}"
-    done
+    PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_PKG_PATH})
+    echo ${PACKAGE_ID}
 }
 
 resolveSequence() {
@@ -57,52 +25,116 @@ resolveSequence() {
     echo "Resolved chaincode sequence: ${CC_SEQUENCE}"
 }
 
-resolveVersion() {
-    export CC_VERSION=$(echo "$PACKAGE_ID" | sed -E 's/^.*_([^:]+):.*$/\1/')
-    echo "Resolved chaincode version: ${CC_VERSION}"
-}
-
 check_commit_readiness() {
     peer lifecycle chaincode checkcommitreadiness \
         --channelID ${NETWORK_CHN_NAME} \
         --name ${CC_NAME} \
         --version ${CC_VERSION} \
         --sequence ${CC_SEQUENCE} \
-        --output json \
-        >> ${NETWORK_LOG_PATH}/chaincode/readiness.log 2>&1
+        --output json
+}
+
+install_chaincode() {
+
+    local org_domain=$1
+    local endpoints_file="${NETWORK_IDS_PATH}/peerOrganizations/${org_domain}/endpoints.json"
+    local peers_count=$(jq -r "keys | length" ${endpoints_file})
+
+    for ((i=1; i<=peers_count; i++)); do
+        set_peer ${org_domain} ${i}
+        peer lifecycle chaincode install ${CC_PKG_PATH}
+        if [ $? -ne 0 ]; then
+            echo "Failed to install chaincode on peer $i"
+            exit 1
+        fi
+    done
+}
+
+approve_chaincode() {
+    local PACKAGE_ID=$1
+    peer lifecycle chaincode approveformyorg \
+        -o ${ORDERER_ADDRESS} \
+        --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
+        --tls \
+        --cafile ${ORDERER_TLS_CA} \
+        --channelID ${NETWORK_CHN_NAME} \
+        --package-id ${PACKAGE_ID} \
+        --name ${CC_NAME} \
+        --version ${CC_VERSION} \
+        --sequence ${CC_SEQUENCE}
+    echo "Chaincode approved for organization ${CORE_PEER_LOCALMSPID}."
 }
 
 commit_chaincode() {
-
-    PEER_ADDRESSES=""
-    TLS_ROOT_CERT_FILES=""
     
-    ORG_COUNT=$(jq -r 'length' ${ORG_JSON_FILE})
-    for ((i=1; i<=ORG_COUNT; i++)); do
+    local tls_identities=$(get_tls_identities)
 
-        local organization=$(jq -r ".\"$i\"" ${ORG_JSON_FILE})
-        local peers_count=$(echo "$organization" | jq -r '.peers | length')
-
-        for ((j=1; j<=peers_count; j++)); do
-            set_organization_peer $i $j >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
-
-            PEER_ADDRESSES+=" --peerAddresses ${CORE_PEER_ADDRESS}"
-            TLS_ROOT_CERT_FILES+=" --tlsRootCertFiles ${CORE_PEER_TLS_ROOTCERT_FILE}"
-        done
-    done
-
-    set_orderer ${DEFAULT_ORD} >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
     peer lifecycle chaincode commit \
-        -o ${ORDERER_ADDR} \
-        --ordererTLSHostnameOverride ${ORDERER_HOST} \
+        -o ${ORDERER_ADDRESS} \
+        --ordererTLSHostnameOverride ${ORDERER_HOSTNAME} \
         --tls \
-        --cafile ${ORDERER_ADMIN_TLS_CA} \
+        --cafile ${ORDERER_TLS_CA} \
         --channelID ${NETWORK_CHN_NAME} \
         --name ${CC_NAME} \
         --version ${CC_VERSION} \
         --sequence ${CC_SEQUENCE} \
-        ${PEER_ADDRESSES} \
-        ${TLS_ROOT_CERT_FILES} \
-        >> ${NETWORK_LOG_PATH}/chaincode/commit.log 2>&1
-    echo "Chaincode committed successfully on all peers."      
+        ${tls_identities}
+}
+
+invoke_chaincode() {
+
+    # TODO: add params
+    # TODO: single function for all invokations or separate? Maybe contract-utils.sh ?
+
+    local org_domain=$1
+    local peer_id=$2
+
+    TIMESTAMP=$(date +%s000)
+    PID="pid_test_${org_domain}"
+    URI="https://example.com/resource/$PID"
+    
+    # Generate hash - use shasum on macOS, sha256sum on Linux
+    if command -v sha256sum &> /dev/null; then
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | sha256sum | cut -d' ' -f1)
+    elif command -v shasum &> /dev/null; then
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | shasum -a 256 | cut -d' ' -f1)
+    else
+        # Fallback to a simple hash
+        HASH=$(echo -n "$PID$URI$TIMESTAMP" | od -An -tx1 | tr -d ' \n')
+    fi
+    
+    # Construct the JSON payload properly
+    JSON_PAYLOAD="{\"Function\":\"CreateResource\",\"Args\":[\"$PID\",\"$URI\",\"$HASH\",\"$TIMESTAMP\",\"[\\\"owner1\\\",\\\"owner2\\\"]\"]}"
+    
+    TLS_IDENTITIES=$(get_tls_identities)
+
+    set_orderer ${DEFAULT_ORD}
+    set_peer ${org_domain} ${peer_id}
+    peer chaincode invoke \
+        -o $ORDERER_ADDRESS \
+        -C $NETWORK_CHN_NAME \
+        -n $CC_NAME \
+        --tls \
+        --cafile $ORDERER_TLS_CA \
+        ${TLS_IDENTITIES} \
+        -c "$JSON_PAYLOAD"
+}
+
+query_chaincode() {
+    local org_domain=$1
+    local peer_id=$2
+
+    PID="pid_test_${org_domain}"
+    JSON_PAYLOAD="{\"Args\":[\"ReadResource\",\"$PID\"]}"
+    
+    set_orderer ${DEFAULT_ORD}
+    set_peer ${org_domain} ${peer_id}
+    peer chaincode query \
+        -C $NETWORK_CHN_NAME \
+        -n $CC_NAME \
+        --tls \
+        --cafile $ORDERER_TLS_CA \
+        --peerAddresses "${CORE_PEER_ADDRESS}" \
+        --tlsRootCertFiles "${CORE_PEER_TLS_ROOTCERT_FILE}" \
+        -c "$JSON_PAYLOAD"
 }

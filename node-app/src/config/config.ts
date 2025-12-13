@@ -1,0 +1,43 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+interface Config {
+  PORT: number;
+  NODE_ENV: string;
+  FABRIC_DEFAULT_ORGANIZATION: string;
+  FABRIC_DEFAULT_MSPID: string;
+  FABRIC_DEFAULT_DOMAIN: string;
+  FABRIC_DEFAULT_PEER_ENDPOINT: string;
+  FABRIC_DEFAULT_PEER_HOSTNAME: string;
+  FABRIC_DEFAULT_USER: string;
+  FABRIC_DEFAULT_CHANNEL: string;
+  FABRIC_DEFAULT_CC_NAME: string;
+  CONNECTION_RECONNECT_TIMEOUT: number;
+  CONNECTION_RECONNECT_INTERVAL: number;
+  CONNECTION_RECONNECT_MAX_TRIES: number;
+  PKEY_PATH: string;
+  CERT_PATH: string;
+  TLSCERT_PATH: string;
+}
+
+const config: Config = {
+  PORT: Number(process.env.PORT) || 3000,
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  FABRIC_DEFAULT_ORGANIZATION: process.env.FABRIC_DEFAULT_ORGANIZATION || 'Org1',
+  FABRIC_DEFAULT_MSPID: process.env.FABRIC_DEFAULT_MSPID || 'Org1MSP',
+  FABRIC_DEFAULT_DOMAIN: process.env.FABRIC_DEFAULT_DOMAIN || 'org1.testbed.local',
+  FABRIC_DEFAULT_PEER_ENDPOINT: process.env.FABRIC_DEFAULT_PEER_ENDPOINT || 'localhost:7051',
+  FABRIC_DEFAULT_PEER_HOSTNAME: process.env.FABRIC_DEFAULT_PEER_HOSTNAME || 'peer0.org1.testbed.local',
+  FABRIC_DEFAULT_USER: process.env.FABRIC_DEFAULT_USER || 'User1',
+  FABRIC_DEFAULT_CHANNEL: process.env.FABRIC_DEFAULT_CHANNEL || 'mychannel',
+  FABRIC_DEFAULT_CC_NAME: process.env.FABRIC_DEFAULT_CC_NAME || 'cc-test',
+  CONNECTION_RECONNECT_TIMEOUT: Number(process.env.CONNECTION_RECONNECT_TIMEOUT) || 10000,
+  CONNECTION_RECONNECT_INTERVAL: Number(process.env.CONNECTION_RECONNECT_INTERVAL) || 5000,
+  CONNECTION_RECONNECT_MAX_TRIES: Number(process.env.CONNECTION_RECONNECT_MAX_TRIES) || 5,
+  PKEY_PATH: process.env.PKEY_PATH || '',
+  CERT_PATH: process.env.CERT_PATH || '',
+  TLSCERT_PATH: process.env.TLSCERT_PATH || ''
+};
+
+export default config;

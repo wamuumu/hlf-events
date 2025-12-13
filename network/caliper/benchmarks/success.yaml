@@ -1,0 +1,31 @@
+test:
+  name: Fabric Success Ratio Benchmark
+  description: Measure transaction success ratio for both write and read scenarios
+  workers:
+    type: local # Default is 'local', other can be 'docker' or 'kubernetes'
+    number: 2 # Simulate 2 clients concurrently
+  rounds:
+    - label: tx-success (write)
+      description: Measure success ratio for write transactions
+      txDuration: 60 # Run for 60 seconds
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: workloads/tx-workload.js
+        arguments:
+          contractName: cc-test
+          roundRobin: false
+    - label: query-success (read)
+      description: Measure success ratio for read transactions
+      txDuration: 60 # Run for 60 seconds
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 200
+      workload:
+        module: workloads/query-workload.js
+        arguments:
+          contractName: cc-test
+          roundRobin: false

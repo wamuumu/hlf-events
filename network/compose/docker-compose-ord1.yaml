@@ -1,0 +1,32 @@
+volumes:
+  orderer_ord1_data:
+
+networks:
+  fabric_net:
+    name: fabric_net
+
+services:
+  orderer.ord1.testbed.local:
+    container_name: orderer.ord1.testbed.local
+    image: hyperledger/fabric-orderer:${FABRIC_VERSION}
+    labels:
+      service: hyperledger-fabric
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LOCALMSPID=Ord1MSP
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_OPERATIONS_LISTENADDRESS=0.0.0.0:9443
+    working_dir: /root
+    command: orderer
+    volumes:
+      - ../config/orderer.yaml:/etc/hyperledger/fabric/orderer.yaml
+      - ../organizations/ordererOrganizations/ord1.testbed.local/orderers/orderer.ord1.testbed.local/:/etc/hyperledger/fabric
+      - orderer_ord1_data:/var/hyperledger
+    ports:
+      - 7050:7050
+      - 7053:7053
+      - 9443:9443
+    networks:
+      - fabric_net
